@@ -9,7 +9,7 @@ namespace dc4asp
         // representing atom), positive numbers (atoms in the positive
         // part of a body), negative numbers (atoms with not).
         // The length of a rule is at least 1. Constraints are created
-        // with 1 in the head, and -1 at the end.
+        // with 0 in the head.
 
         public Model()
         {
@@ -80,9 +80,76 @@ namespace dc4asp
             return atomic_conclusions.SetEquals(set);
         }
 
+        private bool IsConsistent(ImmutableHashSet<int> set)
+        {
+            foreach (int a in set)
+            {
+                if (set.Contains(-a))
+                    return false;
+            }
+            return true;
+        }
+
         private IEnumerable<ImmutableHashSet<int>> DivideAndMerge(int lb, int rb)
         {
-            return Enumerable.Empty<ImmutableHashSet<int>>();
+            if (lb == rb)
+            {
+                if (rules[lb].Count == 1)
+                {
+                    yield return ImmutableHashSet.Create(rules[lb][0]);
+                }
+                else if (rules[lb].All(a => a > 0))
+                {
+                    yield return ImmutableHashSet.Create<int>();
+                }
+                else if (rules[lb][0] == 0)  // a constraint
+                {
+                    if (rules[lb].Skip(1).All(a => a < 0))
+                    {
+                        foreach (int a in rules[lb].Skip(1))
+                        {
+                            yield return ImmutableHashSet.Create(-a);
+                        }
+                    }
+                    else
+                    {
+                        yield return ImmutableHashSet.Create<int>();
+                        foreach (int a in rules[lb].Skip(1))
+                        {
+                            yield return ImmutableHashSet.Create(-a);
+                        }
+                    }
+                }
+                else if (rules[lb].Skip(1).All(a => a < 0))
+                {
+                    foreach (int a in rules[lb].Skip(1))
+                    {
+                        yield return ImmutableHashSet.Create(-a);
+                    }
+                    yield return ImmutableHashSet.Create(rules[lb].ToArray());
+                }
+                else
+                {
+                    yield return ImmutableHashSet.Create<int>();
+                    yield return ImmutableHashSet.Create(rules[lb].ToArray());
+                }
+            }
+            else
+            {
+                var left_sets = DivideAndMerge(lb, (lb + rb) / 2);
+                var right_sets = DivideAndMerge(1 + (lb + rb) / 2, rb);
+                foreach (var left in left_sets)
+                {
+                    foreach (var right in right_sets)
+                    {
+                        ImmutableHashSet<int> set = left.Union(right);
+                        if (IsConsistent(set))
+                        {
+                            yield return set;
+                        }
+                    }
+                }
+            }
         }
 
         public IEnumerable<ImmutableHashSet<int>> AnswerSets()
