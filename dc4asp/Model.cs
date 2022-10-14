@@ -16,7 +16,7 @@ namespace dc4asp
             rules = new();
         }
 
-        private List<ImmutableList<int>> computeReduct(ImmutableHashSet<int> set)
+        private List<ImmutableList<int>> ComputeReduct(ImmutableHashSet<int> set)
         {
             var reduct = new List<ImmutableList<int>>();
             foreach (var rule in rules)
@@ -45,7 +45,7 @@ namespace dc4asp
             return reduct;
         }
 
-        private ImmutableHashSet<int> atomicConclusions(List<ImmutableList<int>> reduct)
+        private ImmutableHashSet<int> AtomicConclusions(List<ImmutableList<int>> reduct)
         {
             HashSet<int> facts = reduct
                 .Where(r => r.Count == 1)
@@ -73,10 +73,10 @@ namespace dc4asp
             return facts.ToImmutableHashSet();
         }
 
-        public bool isStable(ImmutableHashSet<int> set)
+        public bool IsStable(ImmutableHashSet<int> set)
         {
-            List<ImmutableList<int>> reduct = computeReduct(set);
-            ImmutableHashSet<int> atomic_conclusions = atomicConclusions(reduct);
+            List<ImmutableList<int>> reduct = ComputeReduct(set);
+            ImmutableHashSet<int> atomic_conclusions = AtomicConclusions(reduct);
             return atomic_conclusions.SetEquals(set);
         }
 
@@ -158,7 +158,7 @@ namespace dc4asp
             foreach (ImmutableHashSet<int> answer in DivideAndMerge(0, rules.Count - 1))
             {
                 var set = answer.Where(a => a > 0).ToImmutableHashSet();
-                if (isStable(set))
+                if (IsStable(set))
                     yield return set;
             }
         }
