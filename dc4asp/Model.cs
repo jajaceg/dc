@@ -1,4 +1,8 @@
 ﻿using System.Collections.Immutable;
+using org.sat4j.core;
+using org.sat4j.minisat;
+using org.sat4j.specs;
+using org.sat4j.tools;
 
 namespace dc4asp
 {
@@ -90,77 +94,90 @@ namespace dc4asp
             return true;
         }
 
-        private IEnumerable<ImmutableHashSet<int>> DivideAndMerge(int lb, int rb)
+        public IEnumerable<ImmutableHashSet<int>> AnswerSets(int num_of_vars)
         {
-            if (lb == rb)
+            ISolver solver = SolverFactory.newDefault();
+            solver.newVar(num_of_vars + rules.Count);
+            solver.setExpectedNumberOfClauses(rules.Count);
+            HashSet<int> not_present_on_lhs = Enumerable.Range(1, num_of_vars).ToHashSet();
+            GateTranslator gate = new(solver);
+            Dictionary<int, int> varnum_of_rulenum = new();
+            List<int>[] rulenums_for_atom = new List<int>[num_of_vars + 1];
+            int idx = 0;
+            foreach (var r in rules)
             {
-                if (rules[lb].Count == 1)
+                if (r[0] == 0) // a constraint
                 {
-                    yield return ImmutableHashSet.Create(rules[lb][0]);
+                    int[] clause = r.Skip(1).Select(a => -a).ToArray();
+                    solver.addClause(new VecInt(clause));
                 }
-                else if (rules[lb].All(a => a > 0))
+                else if (r.Count == 1)
                 {
-                    yield return ImmutableHashSet.Create<int>();
-                }
-                else if (rules[lb][0] == 0)  // a constraint
-                {
-                    if (rules[lb].Skip(1).All(a => a < 0))
-                    {
-                        foreach (int a in rules[lb].Skip(1))
-                        {
-                            yield return ImmutableHashSet.Create(-a);
-                        }
-                    }
-                    else
-                    {
-                        yield return ImmutableHashSet.Create<int>();
-                        foreach (int a in rules[lb].Skip(1))
-                        {
-                            yield return ImmutableHashSet.Create(-a);
-                        }
-                    }
-                }
-                else if (rules[lb].Skip(1).All(a => a < 0))
-                {
-                    foreach (int a in rules[lb].Skip(1))
-                    {
-                        yield return ImmutableHashSet.Create(-a);
-                    }
-                    yield return ImmutableHashSet.Create(rules[lb].ToArray());
+                    not_present_on_lhs.Remove(r[0]);
+                    int[] clause = new int[1];
+                    clause[0] = r[0];
+                    solver.addClause(new VecInt(clause));
                 }
                 else
                 {
-                    yield return ImmutableHashSet.Create<int>();
-                    yield return ImmutableHashSet.Create(rules[lb].ToArray());
+                    not_present_on_lhs.Remove(r[0]);
+                    varnum_of_rulenum[idx] = ++num_of_vars;
+                    if (rulenums_for_atom[r[0]] is null)
+                    {
+                        rulenums_for_atom[r[0]] = new();
+                    }
+                    rulenums_for_atom[r[0]].Add(num_of_vars);
+                    /*
+                    int[] clause = r.Select(a => -a).ToArray();
+                    clause[0] = r[0];
+                    solver.addClause(new VecInt(clause));
+                    */
+                }
+                ++idx;
+            }
+            foreach (int atom in not_present_on_lhs)
+            {
+                int[] clause = new int[1];
+                clause[0] = -atom;
+                solver.addClause(new VecInt(clause));
+            }
+            foreach ((int rulenum, int varnum) in varnum_of_rulenum)
+            {
+                int[] rhs = rules[rulenum].Skip(1).ToArray();
+                IConstr[] constrs = gate.and(varnum, new VecInt(rhs));
+                foreach (Constr c in constrs)
+                {
+                    solver.addConstr(c);
                 }
             }
-            else
+            for (int a = 1; a < rulenums_for_atom.Length; ++a)
             {
-                var left_sets = DivideAndMerge(lb, (lb + rb) / 2);
-                var right_sets = DivideAndMerge(1 + (lb + rb) / 2, rb);
-                foreach (var left in left_sets)
+                if (rulenums_for_atom[a] is not null)
                 {
-                    foreach (var right in right_sets)
+                    int[] rulenums = rulenums_for_atom[a].ToArray();
+                    IConstr[] constrs = gate.or(a, new VecInt(rulenums));
+                    foreach (Constr c in constrs)
                     {
-                        ImmutableHashSet<int> set = left.Union(right);
-                        if (IsConsistent(set))
-                        {
-                            yield return set;
-                        }
+                        solver.addConstr(c);
                     }
                 }
             }
-        }
-
-        public IEnumerable<ImmutableHashSet<int>> AnswerSets()
-        {
-            rules.Shuffle();
-            foreach (ImmutableHashSet<int> answer in DivideAndMerge(0, rules.Count - 1))
+            ModelIterator mi = new ModelIterator(solver);
+            IProblem problem = mi;
+            bool unsat = true;
+            int basic_atoms = rulenums_for_atom.Length - 1;
+            while (problem.isSatisfiable())
             {
-                var set = answer.Where(a => a > 0).ToImmutableHashSet();
+                unsat = false;
+                var answer = problem.model();
+                var set = answer.Where(a => a > 0 && a <= basic_atoms).ToImmutableHashSet();
                 if (IsStable(set))
+                {
                     yield return set;
+                }
             }
+            if (unsat)
+                yield break;
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace dc4asp
+﻿using System.Text;
+
+namespace dc4asp
 {
     static class ExtensionsClass
     {
@@ -16,6 +18,16 @@
                 list[k] = list[n];
                 list[n] = value;
             }
+        }
+
+        public static string AsText<T>(this IEnumerable<T> set)
+        {
+            StringBuilder sb = new();
+            foreach (T el in set)
+            {
+                sb.Append($"{el} ");
+            }
+            return sb.ToString();
         }
     }
 }
