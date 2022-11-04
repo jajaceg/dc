@@ -44,7 +44,7 @@ namespace dc4asp
             }
             for (int i = 0; i < reduct.Count; ++i)
             {
-                reduct[i] = reduct[i].Where(a => a > 0).ToImmutableList();
+                reduct[i] = reduct[i].Where(a => a >= 0).ToImmutableList();
             }
             return reduct;
         }
