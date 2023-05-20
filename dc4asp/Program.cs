@@ -21,7 +21,7 @@ for (int i = 0; i < facts.Count; i++)
 }
 
 
-var rules = Grounder.NaiveGrounding(facts, lines.Where(x => x.Contains(":-")).Select(x=>x.Trim()));
+var rules = Grounder.NaiveGrounding(intAtoms, lines.Where(x => x.Contains(":-")).Select(x=>x.Trim()));
 
 Model model = new();
 //int b, i, j, idx = 1, n = 4;
