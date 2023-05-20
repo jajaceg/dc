@@ -1,38 +1,35 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace dc4asp
+namespace dc4asp.Grounding
 {
     internal static class Parser
     {
-        public static List<string> VariablesToConstants(string[] lines)
+        public static List<string> VariablesToConstants(IEnumerable<string> lines)
         {
             List<string> result = new();
 
             foreach (var line in lines)
             {
-                if (!line.Contains(":-"))
+                if (!line.Contains('(') && !line.Contains(')'))
                 {
-                    if (!line.Contains('(') && !line.Contains(')'))
-                    {
-                        result.Add(line);
-                        continue;
-                    }
+                    result.Add(line);
+                    continue;
+                }
 
-                    string varName = GetName(line);
-                    string varValue = GetValue(line);
+                string varName = GetName(line);
+                string varValue = GetValue(line);
 
-                    if (varValue.Contains(".."))
+                if (varValue.Contains(".."))
+                {
+                    List<int> values = ParseRange(varValue);
+                    foreach (int value in values)
                     {
-                        List<int> values = ParseRange(varValue);
-                        foreach (int value in values)
-                        {
-                            result.Add($"{varName}({value})");
-                        }
+                        result.Add($"{varName}({value})");
                     }
-                    else
-                    {
-                        result.Add(line);
-                    }
+                }
+                else
+                {
+                    result.Add(line);
                 }
             }
 

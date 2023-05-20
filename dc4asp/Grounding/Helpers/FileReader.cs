@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace dc4asp.Helpers
+namespace dc4asp.Grounding.Helpers
 {
     internal static class FileReader
     {

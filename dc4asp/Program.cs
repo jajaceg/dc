@@ -1,5 +1,6 @@
 ﻿using dc4asp;
-using dc4asp.Helpers;
+using dc4asp.Grounding;
+using dc4asp.Grounding.Helpers;
 
 
 
@@ -10,8 +11,17 @@ using dc4asp.Helpers;
 
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
-var fdfd = Parser.VariablesToConstants(lines);
+var facts = Parser.VariablesToConstants(lines.Where(x => !x.Contains(":-")));
+Dictionary<string, int> intAtoms = new();
 
+
+for (int i = 0; i < facts.Count; i++)
+{
+    intAtoms.Add(facts[i], i);
+}
+
+
+var rules = Grounder.NaiveGrounding(facts, lines.Where(x => x.Contains(":-")).Select(x=>x.Trim()));
 
 Model model = new();
 //int b, i, j, idx = 1, n = 4;
