@@ -71,83 +71,58 @@ namespace dc4asp.Grounding
                 {
                     var knownAtomsInThisRule = GetKnownAtomsInThisRule(facts.Keys, rule.BodyAtoms);
                     IEnumerable<string> knownArgumentNames = GetKnownArgumentNames(knownAtomsInThisRule);
+                    List<ParsedRule> newFacts = new() { rule };
                     if (AreAllArgumentsKnownInRule(knownArgumentNames, rule.BodyAtoms))
                     {
-                        List<ParsedRule> rulesWithAllAtoms = new();
                         foreach (var item in knownAtomsInThisRule.ToList())
                         {
-                            // pierwszy grounding musi dodać nowe rulesWithAllAtoms
-                            if (!rulesWithAllAtoms.Any())
-                            {
-                                var factsForThisAtom = facts.Where(x => x.Key.Contains(item.Split('(')[0]));
-                                var varName = item.Split('(', ')')[1];
+                            var factsForThisAtom = facts.Where(x => x.Key.Contains(item.Split('(')[0]));
+                            var varName = item.Split('(', ')')[1];
 
+                            List<ParsedRule> tempNewFacts = new();
+                            foreach (var partialyGrounded in newFacts)
+                            {
                                 foreach (var atom in factsForThisAtom)
                                 {
-                                    var newRule = new ParsedRule();
+                                    ParsedRule newRule = (ParsedRule)partialyGrounded.Clone();
+                                    newRule.BodyAtoms.Clear();
                                     //change head for example blok(L, I) -> blok(2, I)
-                                    newRule.Head = Regex.Replace(rule.Head, @"\((.*?)\)", match =>
+                                    newRule.Head = Regex.Replace(partialyGrounded.Head, @"\((.*?)\)", match =>
                                     {
                                         string valueWithinBrackets = match.Groups[1].Value;
                                         return "(" + valueWithinBrackets.Replace(varName, atom.Value.ToString()) + ")";
                                     });
 
                                     //change all body elements blok(L, I) -> blok(2, I)
-                                    for (int i = 0; i < rule.BodyAtoms.Count; i++)
+                                    for (int i = 0; i < partialyGrounded.BodyAtoms.Count; i++)
                                     {
-                                        newRule.BodyAtoms.Add(Regex.Replace(rule.BodyAtoms[i], @"\((.*?)\)", match =>
+                                        newRule.BodyAtoms.Add(Regex.Replace(partialyGrounded.BodyAtoms[i], @"\((.*?)\)", match =>
                                         {
                                             string valueWithinBrackets = match.Groups[1].Value;
                                             return "(" + valueWithinBrackets.Replace(varName, atom.Value.ToString()) + ")";
                                         }));
                                     }
-                                    rulesWithAllAtoms.Add(newRule);
+                                    tempNewFacts.Add(newRule);
                                 }
                             }
-                            //drugi grounding już działa na istniejącym rulesWithAllAtoms
-                            else
-                            {
-                                var factsForThisAtom = facts.Where(x => x.Key.Contains(item.Split('(')[0]));
-                                var varName = item.Split('(', ')')[1];
-
-                                List<ParsedRule> newRulesWithAllAtoms = new();
-                                foreach (var partialyGrounded in rulesWithAllAtoms)
-                                {
-
-                                    foreach (var atom in factsForThisAtom)
-                                    {
-                                        ParsedRule newRule = (ParsedRule)partialyGrounded.Clone();
-                                        newRule.BodyAtoms.Clear();
-                                        //change head for example blok(L, I) -> blok(2, I)
-                                        newRule.Head = Regex.Replace(partialyGrounded.Head, @"\((.*?)\)", match =>
-                                        {
-                                            string valueWithinBrackets = match.Groups[1].Value;
-                                            return "(" + valueWithinBrackets.Replace(varName, atom.Value.ToString()) + ")";
-                                        });
-
-                                        //change all body elements blok(L, I) -> blok(2, I)
-                                        for (int i = 0; i < partialyGrounded.BodyAtoms.Count; i++)
-                                        {
-                                            newRule.BodyAtoms.Add(Regex.Replace(partialyGrounded.BodyAtoms[i], @"\((.*?)\)", match =>
-                                            {
-                                                string valueWithinBrackets = match.Groups[1].Value;
-                                                return "(" + valueWithinBrackets.Replace(varName, atom.Value.ToString()) + ")";
-                                            }));
-                                        }
-                                        newRulesWithAllAtoms.Add(newRule);
-                                    }
-                                }
-                                rulesWithAllAtoms.Clear();
-                                rulesWithAllAtoms.AddRange(newRulesWithAllAtoms);
-                            }
-
+                            newFacts.Clear();
+                            newFacts.AddRange(tempNewFacts);
                         }
                         rule.IsGrounded = true;
-                        groundedRules.AddRange(rulesWithAllAtoms);
+                        groundedRules.AddRange(newFacts);
                     }
                     else
                     {
                         continue;
+                    }
+                    //add new facts
+                    foreach (var item in newFacts)
+                    {
+                        facts.TryAdd(item.Head, facts.Count + 1);
+                        foreach (var item2 in item.BodyAtoms)
+                        {
+                            facts.TryAdd(item2, facts.Count + 1);
+                        }
                     }
                 }
             }
