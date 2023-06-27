@@ -57,78 +57,85 @@ namespace dc4asp.Grounding
         }
     }
 
-
     internal static class Grounder
     {
+        // NOTATKI
+        // 26.06.2023:
+        // NAJPIERW NAPRAWIĆ PIERWSZY BŁĄD A PÓŹNIEJ DRUGI
+        // - Powinienem zmienić strukturę knownArgumentNames. Tak żeby jeśli podstawię już coś np. podstawiam 'L, I' to nie muszę później już
+        //   podstawiać nigdzie 'L' oraz 'I'. Muszę gdzieś zapisywać co już podstawiłem.
+        // - Nie radzi sobie z regułą 'jest_w_bloku(L) :- indeks_bloku(I), blok(L, I).'. Dlatego, że z blok bierze string 'L, I' i nie potrafi
+        //   później go podstawić do indeks_bloku za 'I'. Muszę oddzielnie wstawiać wartości 'L' oraz 'I' a nie obie na raz.
+        // - Aktualnie grondinguje tylko Rules ale zapomniałem o Constraints. Dlatego cała ta logika powinna być w drugim etapie zastosowana
+        //   również do Constraints
         public static List<ParsedRule> NaiveGrounding(Dictionary<string, int> facts, IEnumerable<string> rules)
         {
             var parsedRules = PrepareRolesForGrounder(rules);
-            var groundedRules = new List<ParsedRule>();
+            List<ParsedRule> groundedRules = new();
 
+            //dopóki w liście reguł jest jakaś reguła która nie jest jeszcze grounded
             while (parsedRules.Where(x => x.Kind == Kind.Rule).Any(x => x.IsGrounded == false))
             {
-                foreach (var rule in parsedRules.Where(x => x.Kind == Kind.Rule))
+                foreach (var rule in parsedRules.Where(x => x.Kind == Kind.Rule && x.IsGrounded == false))
                 {
-                    var knownAtomsInThisRule = GetKnownAtomsInThisRule(facts.Keys, rule.BodyAtoms);
+                    var knownAtomsInThisRule = GetKnownAtomsInThisRule(facts.Keys, rule.BodyAtoms).ToList(); //!!!!! TUTAJ POWINIENEM WZIĄĆ TYLKO DISTINCTY BO PO CO 2X ROBIĆ TE SAME LITERKI
                     IEnumerable<string> knownArgumentNames = GetKnownArgumentNames(knownAtomsInThisRule);
-                    List<ParsedRule> newFacts = new() { rule };
-                    if (AreAllArgumentsKnownInRule(knownArgumentNames, rule.BodyAtoms))
-                    {
-                        foreach (var item in knownAtomsInThisRule.ToList())
-                        {
-                            var factsForThisAtom = facts.Where(x => x.Key.Contains(item.Split('(')[0]));
-                            var varName = item.Split('(', ')')[1];
+                    
+                    if (!AreAllArgumentsKnownInRule(knownArgumentNames, rule.BodyAtoms))
+                        continue;
 
-                            List<ParsedRule> tempNewFacts = new();
-                            foreach (var partialyGrounded in newFacts)
+                    List<ParsedRule> newFacts = new() { rule }; //nazwa może być zła bo nie wiem czy to nie powinno być new rule albo coś innego
+                    foreach (var item in knownAtomsInThisRule)
+                    {
+                        var factsForThisAtom = facts.Where(x => x.Key.AsSpan().StartsWith(item.Split('(')[0]));
+                        var varName = item.Split('(', ')')[1];
+
+                        List<ParsedRule> tempNewFacts = new();
+                        foreach (var partialyGrounded in newFacts)
+                        {
+                            foreach (var atom in factsForThisAtom)
                             {
-                                foreach (var atom in factsForThisAtom)
+                                ParsedRule newRule = (ParsedRule)partialyGrounded.Clone();
+                                newRule.BodyAtoms.Clear();
+                                //change head for example blok(L, I) -> blok(2, I) . 2 is value
+                                newRule.Head = Regex.Replace(partialyGrounded.Head, @"\((.*?)\)", match =>
                                 {
-                                    ParsedRule newRule = (ParsedRule)partialyGrounded.Clone();
-                                    newRule.BodyAtoms.Clear();
-                                    //change head for example blok(L, I) -> blok(2, I)
-                                    newRule.Head = Regex.Replace(partialyGrounded.Head, @"\((.*?)\)", match =>
+                                    string valueWithinBrackets = match.Groups[1].Value;
+                                    return "(" + valueWithinBrackets.Replace(varName, atom.Key.Split('(', ')')[1]) + ")";
+                                });
+
+                                //change all body elements blok(L, I) -> blok(2, I) . 2 is value (not index)
+                                for (int i = 0; i < partialyGrounded.BodyAtoms.Count; i++)
+                                {
+                                    newRule.BodyAtoms.Add(Regex.Replace(partialyGrounded.BodyAtoms[i], @"\((.*?)\)", match =>
                                     {
                                         string valueWithinBrackets = match.Groups[1].Value;
-                                        return "(" + valueWithinBrackets.Replace(varName, atom.Value.ToString()) + ")";
-                                    });
-
-                                    //change all body elements blok(L, I) -> blok(2, I)
-                                    for (int i = 0; i < partialyGrounded.BodyAtoms.Count; i++)
-                                    {
-                                        newRule.BodyAtoms.Add(Regex.Replace(partialyGrounded.BodyAtoms[i], @"\((.*?)\)", match =>
-                                        {
-                                            string valueWithinBrackets = match.Groups[1].Value;
-                                            return "(" + valueWithinBrackets.Replace(varName, atom.Value.ToString()) + ")";
-                                        }));
-                                    }
-                                    tempNewFacts.Add(newRule);
+                                        return "(" + valueWithinBrackets.Replace(varName, atom.Key.Split('(', ')')[1]) + ")";
+                                    }));
                                 }
+                                tempNewFacts.Add(newRule);
                             }
-                            newFacts.Clear();
-                            newFacts.AddRange(tempNewFacts);
                         }
-                        rule.IsGrounded = true;
-                        groundedRules.AddRange(newFacts);
+                        newFacts.Clear();
+                        newFacts.AddRange(tempNewFacts);
                     }
-                    else
-                    {
-                        continue;
-                    }
+                    rule.IsGrounded = true;
+                    groundedRules.AddRange(newFacts);
+
                     //add new facts
                     foreach (var item in newFacts)
                     {
-                        facts.TryAdd(item.Head, facts.Count + 1);
-                        foreach (var item2 in item.BodyAtoms)
-                        {
-                            facts.TryAdd(item2, facts.Count + 1);
-                        }
+                        facts.TryAdd(item.Head, facts.Count);
+                        //foreach (var item2 in item.BodyAtoms)
+                        //{
+                        //    facts.TryAdd(item2, facts.Count); // prawdopodobnie ten kawałek kodu nie jest potrzebny
+                        //                                      // bo jak coś jest w body to musi być w innej regule w głowie
+                        //}
                     }
                 }
             }
 
-
-            return parsedRules;
+            return groundedRules;
         }
 
         private static bool AreAllArgumentsKnownInRule(IEnumerable<string> knownArgumentNames, List<string> bodyAtoms)
@@ -151,35 +158,31 @@ namespace dc4asp.Grounding
 
         private static IEnumerable<string> GetKnownArgumentNames(IEnumerable<string> knownAtomsInThisRule)
         {
-            return knownAtomsInThisRule.Select(element =>
-            {
-                var parts = element.Split('(', ')');
-                return (parts.Length == 3) ? parts[1].Trim() : element;
-            });
+            string pattern = @"\(([^)]+)\)";
+
+            List<string> elementsInParentheses = knownAtomsInThisRule
+                .SelectMany(item => Regex.Matches(item, pattern))
+                .SelectMany(match => match.Groups[1].Captures.Cast<Capture>())
+                .Select(capture => capture.Value.Split(',').Select(part => part.Trim()))
+                .SelectMany(parts => parts)
+                .Distinct()
+                .ToList();
+            return elementsInParentheses;
         }
 
         private static IEnumerable<string> GetKnownAtomsInThisRule(Dictionary<string, int>.KeyCollection facts, List<string> bodyAtoms)
         {
-            //var factsInRule = bodyAtoms
-            //    .Where(IsNumericParentheses)
-            //    .Where(atom => facts.Any(fact => atom.Equals(fact))).ToList();
-
             var factNames = facts.Select(x => x.Split('(').First()).Distinct();
             var atomsInRule = bodyAtoms
                 .Where(atom => !IsNumericParentheses(atom))
                 .Where(atom => factNames.Any(fact => atom.Split('(').First().Equals(fact)) && atom.Contains('('));
 
-            return atomsInRule;//factsInRule.Concat(atomsInRule);
+            return atomsInRule;
         }
 
         public static bool IsNumericParentheses(string element)
         {
             return element.EndsWith(")") && element.Any(char.IsDigit);
-        }
-
-        private static List<string> GetKnownArgumentNames(Dictionary<string, int>.KeyCollection keys, List<string> bodyAtoms)
-        {
-            throw new NotImplementedException();
         }
 
         static List<ParsedRule> PrepareRolesForGrounder(IEnumerable<string> rules)
