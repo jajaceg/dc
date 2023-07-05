@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using dc4asp.Grounding.Model;
+using System.Text.RegularExpressions;
 
 namespace dc4asp.Grounding
 {
@@ -78,6 +79,125 @@ namespace dc4asp.Grounding
             }
 
             return values;
+        }
+
+
+        public static List<ParsedRule> PrepareRolesForGrounder(IEnumerable<string> rules)
+        {
+            List<ParsedRule> resultList = new();
+
+            foreach (string rule in rules)
+            {
+                var parsedRule = new ParsedRule();
+
+                string pattern = @"([^(),]+(?:\([^()]*\))?)(?:,\s*)?";
+                MatchCollection matches = Regex.Matches(rule, pattern);
+
+                if (rule.StartsWith(":-"))
+                {
+                    parsedRule.Kind = Kind.Constraint;
+
+                    var firstBodyElement = matches[0].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
+                    parsedRule.BodyAtoms.Add(new Atom
+                    {
+                        NameWithArgs = firstBodyElement,
+                        Name = GetAtomName(firstBodyElement),
+                        Arguments = new(GetArgumentNames(firstBodyElement))
+                    });
+                    for (int i = 1; i < matches.Count; i++)
+                    {
+                        var bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
+                        parsedRule.BodyAtoms.Add(new Atom
+                        {
+                            NameWithArgs = bodyElement,
+                            Name = GetAtomName(bodyElement),
+                            Arguments = new(GetArgumentNames(bodyElement))
+                        });
+                    }
+
+                    ParsedRule withExtractedSpecialContructs = ExtractSpecialConstructs(parsedRule);
+                    resultList.Add(withExtractedSpecialContructs);
+                }
+                else
+                {
+                    parsedRule.Kind = Kind.Rule;
+
+                    var head = rule.Substring(0, rule.IndexOf(":-")).Trim();
+                    parsedRule.Head = new Atom()
+                    {
+                        NameWithArgs = head,
+                        Name = GetAtomName(head),
+                        Arguments = new(GetArgumentNames(head))
+                    };
+
+                    var firstBodyElement = matches[1].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
+                    parsedRule.BodyAtoms.Add(new Atom
+                    {
+                        NameWithArgs = firstBodyElement,
+                        Name = GetAtomName(firstBodyElement),
+                        Arguments = new(GetArgumentNames(firstBodyElement))
+                    });
+                    for (int i = 2; i < matches.Count; i++)
+                    {
+                        string bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
+                        parsedRule.BodyAtoms.Add(new Atom
+                        {
+                            NameWithArgs = bodyElement,
+                            Name = GetAtomName(bodyElement),
+                            Arguments = new(GetArgumentNames(bodyElement))
+                        });
+                    }
+
+                    ParsedRule withExtractedSpecialContructs = ExtractSpecialConstructs(parsedRule);
+                    resultList.Add(withExtractedSpecialContructs);
+                }
+
+            }
+            return resultList;
+        }
+
+        public static string GetAtomName(string atom)
+        {
+            return atom.Split('(').First().Trim();
+        }
+
+        public static List<string> GetArgumentNames(string atomWithArgs)
+        {
+            string pattern = @"\(([^)]+)\)";
+
+            return Regex.Matches(atomWithArgs, pattern)
+                .SelectMany(match => match.Groups[1].Captures.Cast<Capture>())
+                .Select(capture => capture.Value.Split(',').Select(part => part.Trim()))
+                .SelectMany(parts => parts)
+                .Distinct()
+                .ToList();
+        }
+
+        public static string RemoveNot(this string value)
+        {
+            return value.Replace("not ", string.Empty);
+        }
+
+        private static ParsedRule ExtractSpecialConstructs(ParsedRule parsedRule)
+        {
+            parsedRule.BodyAtoms.RemoveAll(item =>
+            {
+                if (item.NameWithArgs.Contains('=') && item.NameWithArgs.Contains('+'))
+                {
+                    parsedRule.Constructs.Add(new CreateNewConstant(item.NameWithArgs));
+                    parsedRule.RoleHasSpecialConstructs = true;
+                    return true;
+                }
+                if (item.NameWithArgs.Contains("!="))
+                {
+                    parsedRule.Constructs.Add(new IsDifferent(item.NameWithArgs));
+                    parsedRule.RoleHasSpecialConstructs = true;
+                    return true;
+                }
+                return false;
+            });
+
+            return parsedRule;
         }
     }
 }

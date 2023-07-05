@@ -1,27 +1,25 @@
 ﻿using dc4asp;
 using dc4asp.Grounding;
 using dc4asp.Grounding.Helpers;
-
-
-
-
-
-
-
+using Newtonsoft.Json.Linq;
 
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
-var facts = Parser.VariablesToConstants(lines.Where(x => !x.Contains(":-")));
-Dictionary<string, int> intFacts = new();
+var initialFacts = Parser.VariablesToConstants(lines.Where(x => !x.Contains(":-")));
 
-
-for (int i = 0; i < facts.Count; i++)
+List<Fact> factList = new();
+for (int i = 0; i < initialFacts.Count; i++)
 {
-    intFacts.Add(facts[i].Trim(), i);
+    var arguments = Parser.GetArgumentNames(initialFacts[i]).ToList();
+    factList.Add(new Fact(initialFacts[i].Trim(), Parser.GetAtomName(initialFacts[i]), i, arguments));
 }
 
-
-var rules = Grounder.NaiveGrounding(intFacts, lines.Where(x => x.Contains(":-")).Select(x=>x.Trim()));
+bool Compare(Fact a, Fact b)
+{
+    return JToken.DeepEquals(JToken.FromObject(a), JToken.FromObject(b));
+}
+var rulesFromFile = Parser.PrepareRolesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
+var allFacts = Grounder.OwnGrounder(factList, rulesFromFile);
 
 Model model = new();
 //int b, i, j, idx = 1, n = 4;
