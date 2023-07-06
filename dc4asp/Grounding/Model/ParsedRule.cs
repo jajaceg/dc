@@ -17,6 +17,7 @@ public class Atom
     public string NameWithArgs { get; set; }
     public string Name { get; set; }
     public List<string> Arguments { get; set; }
+    public bool IsNegation { get; set; }
 }
 
 public interface IConstructs
@@ -71,8 +72,10 @@ public class ParsedRule : ICloneable
         }
         return result;
     }
-    private Atom CloneAtom(Atom atom)
+    private static Atom CloneAtom(Atom atom)
     {
+        if (atom is null) return null;
+
         return new Atom
         { 
             NameWithArgs = atom.NameWithArgs, Name = atom.Name, Arguments = new List<string>(atom.Arguments) 

@@ -19,8 +19,11 @@ bool Compare(Fact a, Fact b)
     return JToken.DeepEquals(JToken.FromObject(a), JToken.FromObject(b));
 }
 var rulesFromFile = Parser.PrepareRolesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
-var allFacts = Grounder.OwnGrounder(factList, rulesFromFile);
-
+var (factsFromRules, rules) = Grounder.PrepareFactsFromRules(factList, rulesFromFile.Where(x=>x.Kind == dc4asp.Grounding.Model.Kind.Rule).ToList());
+var (allFacts, constraints)= Grounder.PrepareFactsFromConstraints(
+    factsFromRules,
+    rulesFromFile.Where(x=>x.Kind == dc4asp.Grounding.Model.Kind.Constraint && x.RoleHasSpecialConstructs == false).ToList());
+var groundedRules = Grounder.Ground(allFacts, rules.Concat(constraints).ToList());
 Model model = new();
 //int b, i, j, idx = 1, n = 4;
 //Dictionary<string, int> dictionary = new();
