@@ -1,6 +1,7 @@
 ﻿using dc4asp;
 using dc4asp.Grounding;
 using dc4asp.Grounding.Helpers;
+using dc4asp.Grounding.Model;
 using Newtonsoft.Json.Linq;
 
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
@@ -14,16 +15,9 @@ for (int i = 0; i < initialFacts.Count; i++)
     factList.Add(new Fact(initialFacts[i].Trim(), Parser.GetAtomName(initialFacts[i]), i, arguments));
 }
 
-bool Compare(Fact a, Fact b)
-{
-    return JToken.DeepEquals(JToken.FromObject(a), JToken.FromObject(b));
-}
 var rulesFromFile = Parser.PrepareRolesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
-var (factsFromRules, rules) = Grounder.PrepareFactsFromRules(factList, rulesFromFile.Where(x=>x.Kind == dc4asp.Grounding.Model.Kind.Rule).ToList());
-var (allFacts, constraints)= Grounder.PrepareFactsFromConstraints(
-    factsFromRules,
-    rulesFromFile.Where(x=>x.Kind == dc4asp.Grounding.Model.Kind.Constraint && x.RoleHasSpecialConstructs == false).ToList());
-var groundedRules = Grounder.Ground(allFacts, rules.Concat(constraints).ToList());
+var (Facts, Rules) = Grounder.PrepareData(factList, rulesFromFile);
+
 Model model = new();
 //int b, i, j, idx = 1, n = 4;
 //Dictionary<string, int> dictionary = new();

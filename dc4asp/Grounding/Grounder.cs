@@ -1,5 +1,6 @@
 ﻿using dc4asp.Grounding.Model;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 using System.Data;
 
 namespace dc4asp.Grounding;
@@ -21,6 +22,19 @@ public class Fact
 
 public class Grounder
 {
+    public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareData(List<Fact> facts, List<ParsedRule> parsedRules)
+    {
+        var (factsFromRules, rules) = PrepareFactsFromRules(facts, parsedRules.Where(x => x.Kind == Kind.Rule).ToList());
+        var (allFacts, constraints) = PrepareFactsFromConstraints(
+            factsFromRules,
+            parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false).ToList());
+
+
+
+        var groundedRules = Ground(allFacts, rules.Concat(constraints).ToList());
+
+        return (null, null);
+    }
     public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareFactsFromConstraints(List<Fact> facts, List<ParsedRule> constraints)
     {
         List<ParsedRule> groundedRules = new();
