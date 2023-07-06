@@ -97,21 +97,19 @@ namespace dc4asp.Grounding
                 {
                     parsedRule.Kind = Kind.Constraint;
 
-                    var firstBodyElement = matches[0].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
-                    parsedRule.BodyAtoms.Add(new Atom
+                    for (int i = 0; i < matches.Count; i++)
                     {
-                        NameWithArgs = firstBodyElement,
-                        Name = GetAtomName(firstBodyElement),
-                        Arguments = new(GetArgumentNames(firstBodyElement))
-                    });
-                    for (int i = 1; i < matches.Count; i++)
-                    {
-                        var bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
+                        string bodyElement;
+                        if (i == 0)
+                            bodyElement = matches[0].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
+                        else
+                            bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
                         parsedRule.BodyAtoms.Add(new Atom
                         {
                             NameWithArgs = bodyElement,
                             Name = GetAtomName(bodyElement),
-                            Arguments = new(GetArgumentNames(bodyElement))
+                            Arguments = new(GetArgumentNames(bodyElement)),
+                            IsNegation = matches[i].Groups[1].Value.IsNegation()
                         });
                     }
 
@@ -130,21 +128,19 @@ namespace dc4asp.Grounding
                         Arguments = new(GetArgumentNames(head))
                     };
 
-                    var firstBodyElement = matches[1].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
-                    parsedRule.BodyAtoms.Add(new Atom
+                    for (int i = 1; i < matches.Count; i++)
                     {
-                        NameWithArgs = firstBodyElement,
-                        Name = GetAtomName(firstBodyElement),
-                        Arguments = new(GetArgumentNames(firstBodyElement))
-                    });
-                    for (int i = 2; i < matches.Count; i++)
-                    {
-                        string bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
+                        string bodyElement;
+                        if (i == 1)
+                            bodyElement = matches[i].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
+                        else
+                            bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
                         parsedRule.BodyAtoms.Add(new Atom
                         {
                             NameWithArgs = bodyElement,
                             Name = GetAtomName(bodyElement),
-                            Arguments = new(GetArgumentNames(bodyElement))
+                            Arguments = new(GetArgumentNames(bodyElement)),
+                            IsNegation = matches[i].Groups[1].Value.IsNegation()
                         });
                     }
 
@@ -176,6 +172,10 @@ namespace dc4asp.Grounding
         public static string RemoveNot(this string value)
         {
             return value.Replace("not ", string.Empty);
+        }
+        public static bool IsNegation(this string value)
+        {
+            return value.Contains("not ");
         }
 
         private static ParsedRule ExtractSpecialConstructs(ParsedRule parsedRule)
