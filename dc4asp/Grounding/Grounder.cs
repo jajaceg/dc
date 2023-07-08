@@ -226,7 +226,7 @@ public class Grounder
     {
         //na razie tylko ograniczenia mogą mieć jakieś konstrukcje I1!=I2 itp
         HashSet<string> finished = new();
-        List<string> contstructValueNames = new() { "I1", "I2" };
+        var contstructValueNames = rule.Construct.ConstructValue.Split("!=").Select(x => x.Trim()).ToList();
         finished.Add(contstructValueNames[0]);
         finished.Add(contstructValueNames[1]);
 
@@ -262,7 +262,6 @@ public class Grounder
             });
             newRoles.Add(newRule);
         };
-
 
         foreach (var atomWithName in rule.BodyAtoms)
         {
