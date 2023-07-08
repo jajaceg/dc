@@ -184,13 +184,13 @@ namespace dc4asp.Grounding
             {
                 if (item.NameWithArgs.Contains('=') && item.NameWithArgs.Contains('+'))
                 {
-                    parsedRule.Constructs.Add(new CreateNewConstant(item.NameWithArgs));
+                    parsedRule.Construct = new(ConstructType.CreateNewConstant, item.NameWithArgs);
                     parsedRule.RoleHasSpecialConstructs = true;
                     return true;
                 }
                 if (item.NameWithArgs.Contains("!="))
                 {
-                    parsedRule.Constructs.Add(new IsDifferent(item.NameWithArgs));
+                    parsedRule.Construct = new(ConstructType.IsDifferent, item.NameWithArgs);
                     parsedRule.RoleHasSpecialConstructs = true;
                     return true;
                 }

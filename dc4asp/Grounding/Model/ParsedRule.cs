@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace dc4asp.Grounding.Model;
+﻿namespace dc4asp.Grounding.Model;
 
 public enum Kind
 {
@@ -20,30 +14,30 @@ public class Atom
     public bool IsNegation { get; set; }
 }
 
-public interface IConstructs
+public enum ConstructType
 {
-
+    //TODO rename these props
+    None = 0,
+    IsDifferent = 1, // I1 != I2
+    CreateNewConstant = 2 // Z = X + Y
 }
-
-//TODO rename these props
-public class IsDifferent : IConstructs
+public class Construct
 {
-    public string IsDifferentConstruct { get; set; } // I1 != I2
+    public ConstructType ConstructType { get; set; }
+    public string ConstructValue { get; set; }
 
-    public IsDifferent(string isDifferentConstruct)
+    public Construct()
     {
-        IsDifferentConstruct = isDifferentConstruct;
+        
+    }
+
+    public Construct(ConstructType constructType, string constructValue)
+    {
+        ConstructType = constructType;
+        ConstructValue = constructValue;
     }
 }
-public class CreateNewConstant : IConstructs
-{
-    public string CreateNewConstantConstruct { get; set; } // Z = X + Y
 
-    public CreateNewConstant(string createNewConstantConstruct)
-    {
-        CreateNewConstantConstruct = createNewConstantConstruct;
-    }
-}
 public class ParsedRule : ICloneable
 {
     public object Clone()
@@ -54,9 +48,10 @@ public class ParsedRule : ICloneable
             Head = CloneAtom(Head),
             BodyAtoms = CloneAtoms(BodyAtoms),
             RoleHasSpecialConstructs = RoleHasSpecialConstructs,
-            Constructs = new List<IConstructs>(Constructs)
+            Construct = Construct is null ? null : new Construct(Construct.ConstructType, Construct.ConstructValue) //sprawdzić czy string będzie skopiowany
         };
     }
+
     private List<Atom> CloneAtoms(List<Atom> atoms)
     {
         List<Atom> result = new();
@@ -77,8 +72,10 @@ public class ParsedRule : ICloneable
         if (atom is null) return null;
 
         return new Atom
-        { 
-            NameWithArgs = atom.NameWithArgs, Name = atom.Name, Arguments = new List<string>(atom.Arguments) 
+        {
+            NameWithArgs = atom.NameWithArgs,
+            Name = atom.Name,
+            Arguments = new List<string>(atom.Arguments)
         };
     }
 
@@ -87,5 +84,5 @@ public class ParsedRule : ICloneable
     public Atom Head { get; set; }
     public List<Atom> BodyAtoms { get; set; } = new();
     public bool RoleHasSpecialConstructs { get; set; }
-    public List<IConstructs> Constructs { get; set; } = new();
+    public Construct Construct { get; set; } = new();
 }

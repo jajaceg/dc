@@ -41,7 +41,17 @@ jest_w_bloku(5) :- indeks_bloku(3), blok(5, 3).
 :- liczba(4), not jest_w_bloku(4).
 :- liczba(5), not jest_w_bloku(5).
 
+indeks_bloku(1)
+indeks_bloku(2)
+indeks_bloku(3)
 :- liczba(L), indeks_bloku(I1), indeks_bloku(I2), I1 != I2, blok(L, I1), blok(L, I2).
+
+:- liczba(1), indeks_bloku(1), indeks_bloku(2), 1 != 2, blok(1, 1), blok(1, 2).
+:- liczba(1), indeks_bloku(1), indeks_bloku(3), 1 != 3, blok(1, 1), blok(1, 3).
+:- liczba(1), indeks_bloku(I1), indeks_bloku(I2), 2 != 1, blok(L, I1), blok(L, I2).
+:- liczba(1), indeks_bloku(I1), indeks_bloku(I2), 2 != 3, blok(L, I1), blok(L, I2).
+:- liczba(1), indeks_bloku(I1), indeks_bloku(I2), 3 != 1, blok(L, I1), blok(L, I2).
+:- liczba(1), indeks_bloku(I1), indeks_bloku(I2), 3 != 2, blok(L, I1), blok(L, I2).
 
 :- liczba(1), indeks_bloku(1), indeks_bloku(2), blok(1, 1), blok(1, 2).
 :- liczba(1), indeks_bloku(1), indeks_bloku(3), blok(1, 1), blok(1, 3).

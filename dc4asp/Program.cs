@@ -1,8 +1,6 @@
 ﻿using dc4asp;
 using dc4asp.Grounding;
 using dc4asp.Grounding.Helpers;
-using dc4asp.Grounding.Model;
-using Newtonsoft.Json.Linq;
 
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
