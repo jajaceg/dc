@@ -1,7 +1,10 @@
-﻿using dc4asp.Grounding.Model;
+﻿using dc4asp.Grounding.Helpers;
+using dc4asp.Grounding.Model;
+using java.time;
 using Newtonsoft.Json.Linq;
 using System.Data;
-
+using System.Text.RegularExpressions;
+using NCalc;
 namespace dc4asp.Grounding;
 
 public class Fact
@@ -34,7 +37,7 @@ public class Grounder
 
         var moreRules2 = PrepareCreateNewConstantConstraints(
             factsFromRulesAndConstraints,
-            parsedRules.Where(x => x.Construct.ConstructType == ConstructType.CreateNewConstant).ToList());
+            parsedRules.First(x => x.Construct.ConstructType == ConstructType.CreateNewConstant)); //change to foreach
 
         //   var groundedRules = Ground(moreFacts, rules.Concat(constraints).ToList());
 
@@ -227,11 +230,14 @@ public class Grounder
         //na razie tylko ograniczenia mogą mieć jakieś konstrukcje I1!=I2 itp
         HashSet<string> finished = new();
         var contstructValueNames = rule.Construct.ConstructValue.Split("!=").Select(x => x.Trim()).ToList();
-        finished.Add(contstructValueNames[0]);
-        finished.Add(contstructValueNames[1]);
 
-        var dfasdfasdfasdfas = rule.BodyAtoms.First(x => x.Arguments.Any(x => x == contstructValueNames[0]));
-        var factsForThisConstraint = facts.Where(x => x.Name == dfasdfasdfasdfas.Name).ToList().SelectMany(x => x.Arguments).ToList();
+        var bodyAtomWithContructValue = rule.BodyAtoms.First(x => x.Arguments.Any(x => x == contstructValueNames[0]));
+        var indexOfBodyAtomWithContructValue = bodyAtomWithContructValue.Arguments.IndexOf(contstructValueNames[0]);
+        var factsForThisConstraint = facts
+            .Where(x => x.Name == bodyAtomWithContructValue.Name)
+            .Select(x => x.Arguments[indexOfBodyAtomWithContructValue])
+            .Distinct()
+            .ToList();
         var pairs = new List<Pair>();
         for (int i = 0; i < factsForThisConstraint.Count; i++)
         {
@@ -262,6 +268,8 @@ public class Grounder
             });
             newRoles.Add(newRule);
         };
+        finished.Add(contstructValueNames[0]);
+        finished.Add(contstructValueNames[1]);
 
         foreach (var atomWithName in rule.BodyAtoms)
         {
@@ -315,9 +323,152 @@ public class Grounder
 
         return newRoles;
     }
-    public static List<ParsedRule> PrepareCreateNewConstantConstraints(List<Fact> facts, List<ParsedRule> rules)
+
+    public static bool IsEquationSatisfied(string equation, Dictionary<string, int> variables)
     {
-        throw new NotImplementedException();
+        Expression expression = new Expression(equation);
+
+        foreach (var variable in variables)
+        {
+            expression.Parameters[variable.Key] = variable.Value;
+        }
+
+        return (bool)expression.Evaluate();
+    }
+    public static List<string> GetUniqueTokens(string equation)
+    {
+        // Utwórz listę unikalnych tokenów
+        List<string> uniqueTokens = new List<string>();
+
+        // Znajdź wszystkie litery pojedyncze i ciągi znaków bez spacji
+        var tokens = Regex.Matches(equation, @"\b\w+\b")
+            .Cast<Match>()
+            .Select(m => m.Value);
+
+        // Dodaj unikalne tokeny do listy
+        uniqueTokens.AddRange(tokens.Distinct());
+
+        return uniqueTokens;
+    }
+
+    public static List<ParsedRule> PrepareCreateNewConstantConstraints(List<Fact> facts, ParsedRule rule)
+    {
+        //na razie tylko ograniczenia mogą mieć jakieś konstrukcje Z = X + Y itp
+        HashSet<string> finished = new();
+
+        List<string> uniqueTokens = GetUniqueTokens(rule.Construct.ConstructValue);
+        var bodyAtomWithContructValue = rule.BodyAtoms.First(x => x.Arguments.Any(x => x == uniqueTokens[0]));
+        var indexOfBodyAtomWithContructValue = bodyAtomWithContructValue.Arguments.IndexOf(uniqueTokens[0]);
+        var factsForThisConstraint = facts
+            .Where(x => x.Name == bodyAtomWithContructValue.Name)
+            .Select(x => x.Arguments[indexOfBodyAtomWithContructValue])
+            .Distinct()
+            .ToList();
+
+        var combinations = CombinationGenerator.GenerateCombinations(factsForThisConstraint, uniqueTokens);
+        var variables = new List<Dictionary<string, int>>();
+        foreach (var combination in combinations)
+        {
+            var permutations = CombinationGenerator.GeneratePermutations(combination);
+
+            foreach (var item in permutations)
+            {
+                Dictionary<string, int> keyValuePairs = new();
+                for (int i = 0; i < uniqueTokens.Count; i++)
+                {
+                    keyValuePairs.Add(uniqueTokens[i], Convert.ToInt32(item[i]));
+                }
+                variables.Add(keyValuePairs);
+            }
+        }
+
+        var newRoles = new List<ParsedRule>();
+        foreach (var item in variables)
+        {
+            var result = IsEquationSatisfied(rule.Construct.ConstructValue, item);
+            if (result)
+            {
+                ParsedRule newRule = (ParsedRule)rule.Clone();
+
+                newRule.BodyAtoms.ForEach((x) =>
+                {
+                    foreach (var item2 in uniqueTokens)
+                    {
+                        var index = x.Arguments.IndexOf(item2);
+                        if (index != -1)
+                            x.Arguments[index] = item[item2].ToString();
+                    }
+                });
+                newRoles.Add(newRule);
+            }
+        }
+        foreach (var item in uniqueTokens)
+        {
+            finished.Add(item);
+        }
+
+        foreach (var atomWithName in rule.BodyAtoms)
+        {
+            if (atomWithName.Arguments.Intersect(finished).Count() == atomWithName.Arguments.Count)
+                continue;
+
+            var factsForThisAtom = facts.Where(x => x.Name == atomWithName.Name);
+
+            List<ParsedRule> tempNewFacts = new();
+
+            foreach (var partialyGrounded in newRoles)
+            {
+                bool partiallyGroundedWasChanged = false;
+                foreach (var atomWithNumArg in factsForThisAtom)
+                {
+                    bool wasChanged = false;
+                    ParsedRule newRule = (ParsedRule)partialyGrounded.Clone();
+                    for (int i = 0; i < atomWithName.Arguments.Count; i++)
+                    {
+                        if (finished.Contains(atomWithName.Arguments[i])) continue;
+
+                        // if (contstructValueNames.Contains(atomWithName.Arguments[i])) continue;
+
+
+                        newRule.BodyAtoms.ForEach((x) =>
+                        {
+                            var bodyArgIndex = x.Arguments.IndexOf(atomWithName.Arguments[i]);
+                            if (bodyArgIndex != -1)
+                            {
+                                x.Arguments[bodyArgIndex] = atomWithNumArg.Arguments[i];
+                                partiallyGroundedWasChanged = true;
+                                wasChanged = true;
+                            }
+                        });
+
+                    }
+                    if (wasChanged == true)
+                        tempNewFacts.Add(newRule);
+                }
+                if (partiallyGroundedWasChanged is false)
+                    tempNewFacts.Add(partialyGrounded);
+            }
+            newRoles.Clear();
+            newRoles.AddRange(tempNewFacts);
+
+            foreach (var item in atomWithName.Arguments)
+            {
+                finished.Add(item);
+            }
+        }
+
+        foreach (var item in newRoles)
+        {
+            Console.WriteLine();
+
+           // Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
+            foreach (var bodyatom in item.BodyAtoms)
+            {
+                Console.WriteLine(item.BodyAtoms.IndexOf(bodyatom) + "Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
+            }
+        }
+
+        return newRoles;
     }
     private static bool AreAllArgumentsKnownInRule(IEnumerable<string> knownArgumentNames, List<Atom> bodyAtoms)
     {

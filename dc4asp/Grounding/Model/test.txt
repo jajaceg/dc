@@ -79,5 +79,10 @@ blok_ma_jakas_liczbe(3) :- liczba(5), blok(5, 3).
 :- indeks_bloku(2), not blok_ma_jakas_liczbe(2).
 :- indeks_bloku(3), not blok_ma_jakas_liczbe(3).
 
-:- liczba(X), liczba(Y), liczba(Z), Z = X + Y, indeks_bloku(I), blok(X, I), blok(Y, I), blok(Z, I). 
-etc.
+:- liczba(X), liczba(Y), liczba(Z), Z = X + Y, indeks_bloku(I), blok(X, I), blok(Y, I), blok(Z, I).
+
+:- liczba(1), liczba(1), liczba(Z), Z = 1 + Y, indeks_bloku(I), blok(1, I), blok(Y, I), blok(Z, I).
+:- liczba(2), liczba(2), liczba(Z), Z = 2 + Y, indeks_bloku(I), blok(2, I), blok(Y, I), blok(Z, I).
+:- liczba(3), liczba(3), liczba(Z), Z = 3 + Y, indeks_bloku(I), blok(3, I), blok(Y, I), blok(Z, I).
+:- liczba(4), liczba(4), liczba(Z), Z = 4 + Y, indeks_bloku(I), blok(4, I), blok(Y, I), blok(Z, I).
+:- liczba(5), liczba(5), liczba(Z), Z = 5 + Y, indeks_bloku(I), blok(5, I), blok(Y, I), blok(Z, I).
