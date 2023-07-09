@@ -1,10 +1,10 @@
 ﻿using dc4asp.Grounding.Helpers;
 using dc4asp.Grounding.Model;
-using java.time;
+using NCalc;
 using Newtonsoft.Json.Linq;
+using System.Collections.Immutable;
 using System.Data;
 using System.Text.RegularExpressions;
-using NCalc;
 namespace dc4asp.Grounding;
 
 public class Fact
@@ -39,9 +39,9 @@ public class Grounder
             factsFromRulesAndConstraints,
             parsedRules.First(x => x.Construct.ConstructType == ConstructType.CreateNewConstant)); //change to foreach
 
-        //   var groundedRules = Ground(moreFacts, rules.Concat(constraints).ToList());
+        var allRules = rules.Concat(constraints).Concat(moreRules).Concat(moreRules2).ToList();
 
-        return (null, null);
+        return (factsFromRulesAndConstraints, allRules);
     }
     public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareFactsFromConstraints(List<Fact> facts, List<ParsedRule> constraints)
     {
@@ -461,7 +461,7 @@ public class Grounder
         {
             Console.WriteLine();
 
-           // Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
+            // Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
             foreach (var bodyatom in item.BodyAtoms)
             {
                 Console.WriteLine(item.BodyAtoms.IndexOf(bodyatom) + "Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
@@ -505,14 +505,41 @@ public class Grounder
         return JToken.DeepEquals(JToken.FromObject(a), JToken.FromObject(b));
     }
 
-    public static List<Fact> Ground(List<Fact> facts, List<ParsedRule> rulesAndConstraints)
+    public static List<ImmutableList<int>> Ground(List<Fact> facts, List<ParsedRule> rules)
     {
-        foreach (var rule in facts)
+        List<ImmutableList<int>> result = new();
+        foreach (var rule in rules)
         {
-            Console.WriteLine(rule.Name + ":     args:          " + string.Join(", ", rule.Arguments));
+            int index = 0;
+            if (rule.Kind == Kind.Rule)
+            {
+                index = FindIndex(facts, rule.Head);
+                if (rule.Head.IsNegation)
+                {
+                    index *= -1;
+                }
+            }
+            List<int> indexesFromBody = new() { index };
 
+            foreach (var item in rule.BodyAtoms)
+            {
+                var indexOfBodyArg = FindIndex(facts, item);
+                if (item.IsNegation)
+                {
+                    indexOfBodyArg *= -1;
+                }
+                indexesFromBody.Add(indexOfBodyArg);
+            }
+            result.Add(indexesFromBody.ToImmutableList());
         }
 
-        return null;
+        return result;
+    }
+
+    static int FindIndex(List<Fact> facts, Atom atom)
+    {
+        return facts.First(
+            x => x.Name == atom.Name && x.Arguments.SequenceEqual(atom.Arguments))
+            .Index;
     }
 }

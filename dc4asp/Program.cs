@@ -1,6 +1,7 @@
 ﻿using dc4asp;
 using dc4asp.Grounding;
 using dc4asp.Grounding.Helpers;
+using System.Collections.Immutable;
 
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
@@ -15,6 +16,7 @@ for (int i = 0; i < initialFacts.Count; i++)
 
 var rulesFromFile = Parser.PrepareRolesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
 var (Facts, Rules) = Grounder.PrepareData(factList, rulesFromFile);
+List<ImmutableList<int>> gourndedRules = Grounder.Ground(Facts, Rules);
 
 Model model = new();
 //int b, i, j, idx = 1, n = 4;

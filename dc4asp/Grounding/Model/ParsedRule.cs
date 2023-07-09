@@ -28,7 +28,7 @@ public class Construct
 
     public Construct()
     {
-        
+
     }
 
     public Construct(ConstructType constructType, string constructValue)
@@ -62,7 +62,8 @@ public class ParsedRule : ICloneable
                 {
                     NameWithArgs = atom.NameWithArgs,
                     Name = atom.Name,
-                    Arguments = new List<string>(atom.Arguments)
+                    Arguments = new List<string>(atom.Arguments),
+                    IsNegation = atom.IsNegation
                 });
         }
         return result;
@@ -75,7 +76,8 @@ public class ParsedRule : ICloneable
         {
             NameWithArgs = atom.NameWithArgs,
             Name = atom.Name,
-            Arguments = new List<string>(atom.Arguments)
+            Arguments = new List<string>(atom.Arguments),
+            IsNegation = atom.IsNegation
         };
     }
 
