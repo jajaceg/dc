@@ -427,7 +427,7 @@ public class Grounder
                     {
                         if (finished.Contains(atomWithName.Arguments[i])) continue;
 
-                        // if (contstructValueNames.Contains(atomWithName.Arguments[i])) continue;
+                        //if (contstructValueNames.Contains(atomWithName.Arguments[i])) continue;
 
 
                         newRule.BodyAtoms.ForEach((x) =>
@@ -457,16 +457,16 @@ public class Grounder
             }
         }
 
-        foreach (var item in newRoles)
-        {
-            Console.WriteLine();
+        //foreach (var item in newRoles)
+        //{
+        //    Console.WriteLine();
 
-            // Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
-            foreach (var bodyatom in item.BodyAtoms)
-            {
-                Console.WriteLine(item.BodyAtoms.IndexOf(bodyatom) + "Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
-            }
-        }
+        //    // Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
+        //    foreach (var bodyatom in item.BodyAtoms)
+        //    {
+        //        Console.WriteLine(item.BodyAtoms.IndexOf(bodyatom) + "Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
+        //    }
+        //}
 
         return newRoles;
     }
@@ -514,10 +514,6 @@ public class Grounder
             if (rule.Kind == Kind.Rule)
             {
                 index = FindIndex(facts, rule.Head);
-                if (rule.Head.IsNegation)
-                {
-                    index *= -1;
-                }
             }
             List<int> indexesFromBody = new() { index };
 
