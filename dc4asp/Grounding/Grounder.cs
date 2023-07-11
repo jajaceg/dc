@@ -7,21 +7,6 @@ using System.Data;
 using System.Text.RegularExpressions;
 namespace dc4asp.Grounding;
 
-public class Fact
-{
-    public string NameWithArgs { get; set; }
-    public string Name { get; set; }
-    public List<string> Arguments { get; set; }
-    public int Index { get; set; }
-    public Fact(string nameWithArgs, string name, int index, List<string> arguments)
-    {
-        NameWithArgs = nameWithArgs;
-        Name = name;
-        Arguments = arguments;
-        Index = index;
-    }
-}
-
 public class Grounder
 {
     public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareData(List<Fact> facts, List<ParsedRule> parsedRules)
@@ -477,20 +462,22 @@ public class Grounder
 
     private static List<Fact> RemoveDuplicates(List<Fact> rules)
     {
-        foreach (var item in rules)
-        {
-            item.Index = 0;
-        }
+        //do usunięcia reset indexu
+        //foreach (var item in rules)
+        //{
+        //    item.Index = 0;
+        //}
         List<Fact> uniqueList = new();
         foreach (var item in rules)
         {
             if (!uniqueList.Any(x => Compare(x, item)))
                 uniqueList.Add(item);
         }
-        for (int i = 0; i < uniqueList.Count; i++)
-        {
-            uniqueList[i].Index = i;
-        }
+        //do usunięcia ustawienie indexu na nowo
+        //for (int i = 0; i < uniqueList.Count; i++)
+        //{
+        //    uniqueList[i].Index = i;
+        //}
 
         return uniqueList;
     }

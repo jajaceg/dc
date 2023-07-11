@@ -7,16 +7,9 @@ using System.Text.RegularExpressions;
 
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
-var initialFacts = Parser.VariablesToConstants(lines.Where(x => !x.Contains(":-")));
+var factList = Parser.ParseFacts(lines.Where(x => !x.Contains(":-")));
 
-List<Fact> factList = new();
-for (int i = 0; i < initialFacts.Count; i++)
-{
-    var arguments = Parser.GetArgumentNames(initialFacts[i]).ToList();
-    factList.Add(new Fact(initialFacts[i].Trim(), Parser.GetAtomName(initialFacts[i]), i, arguments));
-}
-
-var rulesFromFile = Parser.PrepareRolesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
+var rulesFromFile = Parser.PrepareRulesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
 var (Facts, Rules) = Grounder.PrepareData(factList, rulesFromFile);
 
 //Change blok(L,I) to block(1,3) based on arguments
@@ -38,6 +31,7 @@ foreach (var item in Rules)
         atom.NameWithArgs = replacedString;
     }
 }
+//TODO remove this and save atoms instaed facts
 foreach (var item in Facts)
 {
     var pattern = @"\((.*?)\)";
@@ -46,10 +40,11 @@ foreach (var item in Facts)
     item.NameWithArgs = replacedString;
 }
 
-foreach (var item in Facts)
-{
-    item.Index++;
-}
+//do usunięcia po poprawieniu indexów
+//foreach (var item in Facts)
+//{
+//    item.Index++;
+//}
 List<ImmutableList<int>> groundedRules = Grounder.Ground(Facts, Rules);
 
 foreach (var item in Facts)
