@@ -40,10 +40,10 @@ foreach (var item in Rules)
 }
 foreach (var item in Facts)
 {
-        var pattern = @"\((.*?)\)";
-        var replacedString = Regex.Replace(item.NameWithArgs, pattern, $"({string.Join(",", item.Arguments)})");
+    var pattern = @"\((.*?)\)";
+    var replacedString = Regex.Replace(item.NameWithArgs, pattern, $"({string.Join(",", item.Arguments)})");
 
-        item.NameWithArgs = replacedString;
+    item.NameWithArgs = replacedString;
 }
 
 foreach (var item in Facts)
@@ -52,28 +52,43 @@ foreach (var item in Facts)
 }
 List<ImmutableList<int>> groundedRules = Grounder.Ground(Facts, Rules);
 
+foreach (var item in Facts)
+{
+    Console.WriteLine("index: " + item.Index + ":    " + item.NameWithArgs);
+}
+
+foreach (var item in groundedRules)
+{
+    Console.WriteLine();
+    Console.WriteLine();
+
+    foreach (var item2 in item)
+    {
+        if (item2 == 0)
+            Console.WriteLine(item2 + "   ograniczenie");
+        else
+            Console.WriteLine(item2 + "     " + Facts.First(x => x.Index == Math.Abs(item2)).NameWithArgs);
+
+    }
+}
 Model model = new();
 model.rules.AddRange(groundedRules);
+for (int i = 1; i < 16; i++)
+{
+    model.rules.Add(ImmutableList.Create<int>(i));
 
-//foreach (var item in Facts)
-//{
-//    Console.WriteLine("index: " + item.Index + ":    " + item.NameWithArgs);
-//}
+}
 
-//foreach (var item in groundedRules)
-//{
-//    Console.WriteLine();
-//    Console.WriteLine();
 
-//    foreach (var item2 in item)
-//    {
-//        if (item2 == 0)
-//            Console.WriteLine(item2 + "   ograniczenie");
-//        else
-//            Console.WriteLine(item2 + "     " + Facts.First(x => x.Index == Math.Abs(item2)).NameWithArgs);
+var answer = model.AnswerSets(model.rules.Count).FirstOrDefault();
+Console.WriteLine();
 
-//    }
-//}
-
-var answer = model.AnswerSets(Rules.Count).FirstOrDefault();
+foreach (var item in answer)
+{
+    var fakt = Facts.FirstOrDefault(x => x.Index == item && x.Name == "blok");
+    if (fakt is not null)
+    {
+        Console.WriteLine(item + ": " + fakt.NameWithArgs);
+    }
+}
 Console.WriteLine();

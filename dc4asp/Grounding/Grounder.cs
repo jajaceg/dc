@@ -39,7 +39,7 @@ public class Grounder
             factsFromRulesAndConstraints,
             parsedRules.First(x => x.Construct.ConstructType == ConstructType.CreateNewConstant)); //change to foreach
 
-        var allRules = rules.Concat(constraints).Concat(moreRules).Concat(moreRules2).ToList();
+        var allRules = rules.Concat(constraints).ToList().Concat(moreRules).Concat(moreRules2).ToList();
 
         return (factsFromRulesAndConstraints, allRules);
     }

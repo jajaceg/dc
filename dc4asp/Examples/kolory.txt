@@ -1,0 +1,60 @@
+panstwo(a).
+panstwo(b).
+sasiedzi(a, b).
+paleta(czerwony).
+paleta(niebieski).
+paleta(zolty).
+
+kolor(V, K) :- panstwo(V), paleta(K), not innyKolor(V, K).
+innyKolor(V, K) :- panstwo(V), paleta(K), not kolor(V, K).
+maKolor(V) :- panstwo(V), paleta(K), kolor(V, K).
+:- panstwo(V), not maKolor(V).
+:- panstwo(V), paleta(K1), paleta(K2), kolor(V, K1), kolor(V, K2), K1 != K2.
+:- sasiedzi(V, U), kolor(V, K), kolor(U, K).
+
+
+
+
+
+
+panstwo(a).
+panstwo(b).
+sasiedzi(a, b).
+paleta(czerwony).
+paleta(niebieski).
+paleta(zolty).
+
+kolor(a, czerwony) :- panstwo(a), paleta(czerwony), not innyKolor(a, czerwony).
+kolor(a, niebieski) :- panstwo(a), paleta(niebieski), not innyKolor(a, niebieski).
+kolor(a, zolty) :- panstwo(a), paleta(zolty), not innyKolor(a, zolty).
+kolor(b, czerwony) :- panstwo(b), paleta(czerwony), not innyKolor(b, czerwony).
+kolor(b, niebieski) :- panstwo(b), paleta(niebieski), not innyKolor(b, niebieski).
+kolor(b, zolty) :- panstwo(b), paleta(zolty), not innyKolor(b, zolty).
+
+innyKolor(a, czerwony) :- panstwo(a), paleta(czerwony), not kolor(a, czerwony).
+innyKolor(a, niebieski) :- panstwo(a), paleta(niebieski), not kolor(a, niebieski).
+innyKolor(a, zolty) :- panstwo(a), paleta(zolty), not kolor(a, zolty).
+innyKolor(b, czerwony) :- panstwo(b), paleta(czerwony), not kolor(b, czerwony).
+innyKolor(b, niebieski) :- panstwo(b), paleta(niebieski), not kolor(b, niebieski).
+innyKolor(b, zolty) :- panstwo(b), paleta(zolty), not kolor(b, zolty).
+
+maKolor(a) :- panstwo(a), paleta(czerwony), kolor(a, czerwony).
+maKolor(a) :- panstwo(a), paleta(niebieski), kolor(a, niebieski).
+maKolor(a) :- panstwo(a), paleta(zolty), kolor(a, zolty).
+maKolor(b) :- panstwo(b), paleta(czerwony), kolor(b, czerwony).
+maKolor(b) :- panstwo(b), paleta(niebieski), kolor(b, niebieski).
+maKolor(b) :- panstwo(b), paleta(zolty), kolor(b, zolty).
+
+:- panstwo(a), not maKolor(a).
+:- panstwo(b), not maKolor(b).
+
+:- panstwo(a), paleta(czerwony), paleta(niebieski), kolor(a, czerwony), kolor(a, niebieski), czerwony != niebieski.
+:- panstwo(a), paleta(czerwony), paleta(zolty), kolor(a, czerwony), kolor(a, zolty), czerwony != zolty.
+:- panstwo(a), paleta(niebieski), paleta(zolty), kolor(a, niebieski), kolor(a, zolty), niebieski != zolty.
+:- panstwo(b), paleta(czerwony), paleta(niebieski), kolor(b, czerwony), kolor(b, niebieski), czerwony != niebieski.
+:- panstwo(b), paleta(czerwony), paleta(zolty), kolor(b, czerwony), kolor(b, zolty), czerwony != zolty.
+:- panstwo(b), paleta(niebieski), paleta(zolty), kolor(b, niebieski), kolor(b, zolty), niebieski != zolty.
+
+:- sasiedzi(a, b), kolor(a, czerwony), kolor(b, czerwony).
+:- sasiedzi(a, b), kolor(a, niebieski), kolor(b, niebieski).
+:- sasiedzi(a, b), kolor(a, zolty), kolor(b, zolty).
