@@ -38,6 +38,13 @@ foreach (var item in Rules)
         atom.NameWithArgs = replacedString;
     }
 }
+foreach (var item in Facts)
+{
+        var pattern = @"\((.*?)\)";
+        var replacedString = Regex.Replace(item.NameWithArgs, pattern, $"({string.Join(",", item.Arguments)})");
+
+        item.NameWithArgs = replacedString;
+}
 
 foreach (var item in Facts)
 {
@@ -45,97 +52,28 @@ foreach (var item in Facts)
 }
 List<ImmutableList<int>> groundedRules = Grounder.Ground(Facts, Rules);
 
-foreach (var item in Facts)
-{
-    Console.WriteLine("index: " + item.Index + ":    " + item.NameWithArgs + "   " + string.Join(",", item.Arguments));
-}
-//foreach (var item in Rules)
-//{
-//    Console.WriteLine();
-//    if(item.Kind == dc4asp.Grounding.Model.Kind.Rule)
-//     Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
-
-//    foreach (var bodyatom in item.BodyAtoms)
-//    {
-//        Console.WriteLine("index: " + item.BodyAtoms.IndexOf(bodyatom) + "  Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
-//    }
-//}
 Model model = new();
 model.rules.AddRange(groundedRules);
 
+//foreach (var item in Facts)
+//{
+//    Console.WriteLine("index: " + item.Index + ":    " + item.NameWithArgs);
+//}
 
+//foreach (var item in groundedRules)
+//{
+//    Console.WriteLine();
+//    Console.WriteLine();
 
+//    foreach (var item2 in item)
+//    {
+//        if (item2 == 0)
+//            Console.WriteLine(item2 + "   ograniczenie");
+//        else
+//            Console.WriteLine(item2 + "     " + Facts.First(x => x.Index == Math.Abs(item2)).NameWithArgs);
 
-foreach (var item in groundedRules)
-{
-    Console.WriteLine();
-    Console.WriteLine();
+//    }
+//}
 
-    foreach (var item2 in item)
-    {
-        Console.WriteLine(item2);
-    }
-}
-
-
-
-
-var answer = model.AnswerSets(groundedRules.Count).FirstOrDefault();
+var answer = model.AnswerSets(Rules.Count).FirstOrDefault();
 Console.WriteLine();
-//HashSet<int>[] partition = new HashSet<int>[4];
-//for (b = 1; b <= 3; ++b)
-//{
-//    partition[b] = new();
-//}
-//foreach (((int number, int block_idx), int var_idx) in block)
-//{
-//    if (answer!.Contains(var_idx))
-//    {
-//        partition[block_idx].Add(number);
-//    }
-//}
-//Console.WriteLine($"Block 1: {partition[1].AsText()}");
-//Console.WriteLine($"Block 2: {partition[2].AsText()}");
-//Console.WriteLine($"Block 3: {partition[3].AsText()}");
-
-
-//int b, i, j, idx = 1, n = 4;
-//Dictionary<string, int> dictionary = new();
-
-//for (i = 1; i <= n; ++i)
-//{
-//    model.rules.Add(ImmutableList.Create(block[(i, 1)], -block[(i, 2)], -block[(i, 3)]));
-//    model.rules.Add(ImmutableList.Create(block[(i, 2)], -block[(i, 1)], -block[(i, 3)]));
-//    model.rules.Add(ImmutableList.Create(block[(i, 3)], -block[(i, 1)], -block[(i, 2)]));
-//    model.rules.Add(ImmutableList.Create(0, -block[(i, 1)], -block[(i, 2)], -block[(i, 3)]));
-//}
-//for (i = 1; i <= n; ++i)
-//{
-//    for (j = i; j <= n; ++j)
-//    {
-//        if (i + j <= n)
-//        {
-//            for (b = 1; b <= 3; ++b)
-//            {
-//                model.rules.Add(ImmutableList.Create(0, block[(i, b)], block[(j, b)], block[(i + j, b)]));
-//            }
-//        }
-//    }
-//}
-
-//var answer = model.AnswerSets(idx - 1).FirstOrDefault();
-//HashSet<int>[] partition = new HashSet<int>[4];
-//for (b = 1; b <= 3; ++b)
-//{
-//    partition[b] = new();
-//}
-//foreach (((int number, int block_idx), int var_idx) in block)
-//{
-//    if (answer!.Contains(var_idx))
-//    {
-//        partition[block_idx].Add(number);
-//    }
-//}
-//Console.WriteLine($"Block 1: {partition[1].AsText()}");
-//Console.WriteLine($"Block 2: {partition[2].AsText()}");
-//Console.WriteLine($"Block 3: {partition[3].AsText()}");
