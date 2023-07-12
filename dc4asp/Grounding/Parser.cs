@@ -103,20 +103,12 @@ internal static class Parser
                 {
                     string bodyElement;
                     if (i == 0)
-                        bodyElement = matches[0].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
+                        bodyElement = matches[i].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
                     else
                         bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
-                    parsedRule.BodyAtoms.Add(new Atom
-                    {
-                        NameWithArgs = bodyElement,
-                        Name = GetAtomName(bodyElement),
-                        Arguments = new(GetArgumentNames(bodyElement)),
-                        IsNegation = matches[i].Groups[1].Value.IsNegation()
-                    });
-                }
 
-                ParsedRule withExtractedSpecialContructs = ExtractSpecialConstructs(parsedRule);
-                resultList.Add(withExtractedSpecialContructs);
+                    parsedRule.BodyAtoms.Add(CreateAtomFromBodyElement(bodyElement, matches[i].Groups[1].Value));
+                }
             }
             else
             {
@@ -137,21 +129,36 @@ internal static class Parser
                         bodyElement = matches[i].Groups[1].Value.Replace(":-", string.Empty).RemoveNot().Trim();
                     else
                         bodyElement = matches[i].Groups[1].Value.RemoveNot().Trim();
-                    parsedRule.BodyAtoms.Add(new Atom
-                    {
-                        NameWithArgs = bodyElement,
-                        Name = GetAtomName(bodyElement),
-                        Arguments = new(GetArgumentNames(bodyElement)),
-                        IsNegation = matches[i].Groups[1].Value.IsNegation()
-                    });
+
+                    parsedRule.BodyAtoms.Add(CreateAtomFromBodyElement(bodyElement, matches[i].Groups[1].Value));
                 }
-
-                ParsedRule withExtractedSpecialContructs = ExtractSpecialConstructs(parsedRule);
-                resultList.Add(withExtractedSpecialContructs);
             }
-
+            ParsedRule withExtractedSpecialContructs = ExtractSpecialConstructs(parsedRule);
+            resultList.Add(withExtractedSpecialContructs);
         }
+
         return resultList;
+    }
+
+    private static Atom CreateAtomFromBodyElement(string bodyElement, string matchValue)
+    {
+        return new Atom
+        {
+            NameWithArgs = bodyElement,
+            Name = GetAtomName(bodyElement),
+            Arguments = new(GetArgumentNames(bodyElement)),
+            IsNegation = matchValue.IsNegation()
+        };
+    }
+
+    private static Atom CreateAtomFromHead(string head)
+    {
+        return new Atom
+        {
+            NameWithArgs = head,
+            Name = GetAtomName(head),
+            Arguments = new(GetArgumentNames(head))
+        };
     }
 
     public static string GetAtomName(string atom)
@@ -184,7 +191,11 @@ internal static class Parser
     {
         parsedRule.BodyAtoms.RemoveAll(item =>
         {
-            if (item.NameWithArgs.Contains('=') && item.NameWithArgs.Contains('+'))
+            if (item.NameWithArgs.Contains('=') && (item.NameWithArgs.Contains('+')
+            || item.NameWithArgs.Contains('-')
+            || item.NameWithArgs.Contains('*')
+            || item.NameWithArgs.Contains('/')
+            || item.NameWithArgs.Contains('%')))
             {
                 parsedRule.Construct = new(ConstructType.CreateNewConstant, item.NameWithArgs);
                 parsedRule.RoleHasSpecialConstructs = true;

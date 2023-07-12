@@ -11,99 +11,28 @@ public class Grounder
 {
     public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareData(List<Fact> facts, List<ParsedRule> parsedRules)
     {
-        var (factsFromRules, rules) = PrepareFactsFromRules(facts, parsedRules.Where(x => x.Kind == Kind.Rule).ToList());
-        var (factsFromRulesAndConstraints, constraints) = PrepareFactsFromConstraints(
-            factsFromRules,
-            parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false).ToList());
+        List<ParsedRule> allRules = new();
 
-        var moreRules = PrepareIsDifferentConstraints(
-            factsFromRulesAndConstraints,
-            parsedRules.First(x => x.Construct.ConstructType == ConstructType.IsDifferent)); //change to foreach
+        //TODO zmienić nazwy metod
+        var (factsAndAllAtoms, rules) = PrepareAtomsFromRules(facts, parsedRules.Where(x => x.Kind == Kind.Rule));
+        allRules.AddRange(rules);
 
-        var moreRules2 = PrepareCreateNewConstantConstraints(
-            factsFromRulesAndConstraints,
-            parsedRules.First(x => x.Construct.ConstructType == ConstructType.CreateNewConstant)); //change to foreach
+        var constraints = PrepareAtomsFromConstraints(factsAndAllAtoms, parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false));
+        allRules.AddRange(constraints);
 
-        var allRules = rules.Concat(constraints).ToList().Concat(moreRules).Concat(moreRules2).ToList();
-
-        return (factsFromRulesAndConstraints, allRules);
-    }
-    public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareFactsFromConstraints(List<Fact> facts, List<ParsedRule> constraints)
-    {
-        List<ParsedRule> groundedRules = new();
-
-        while (constraints.Any(x => x.IsGrounded == false))
+        foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.IsDifferent))
         {
-            foreach (var constraint in constraints.Where(x => x.IsGrounded == false))
-            {
-                var knownAtomsInThisRule = constraint.BodyAtoms.Where(x => facts.Any(y => y.Name == x.Name));
-
-                if (!AreAllArgumentsKnownInRule(knownAtomsInThisRule.SelectMany(x => x.Arguments), constraint.BodyAtoms))
-                    throw new Exception("Ograniczenia posiadają nieznane zmienne (albo algorytm ma błąd :O )");
-
-                List<ParsedRule> newFacts = new() { constraint };
-                HashSet<string> finished = new();
-                foreach (var atomWithName in knownAtomsInThisRule.ToList())
-                {
-                    if (atomWithName.Arguments.Intersect(finished).Count() == atomWithName.Arguments.Count)
-                        continue;
-
-                    var factsForThisAtom = facts.Where(x => x.Name == atomWithName.Name);
-
-                    List<ParsedRule> tempNewFacts = new();
-                    foreach (var partialyGrounded in newFacts)
-                    {
-                        bool partiallyGroundedWasChanged = false;
-                        foreach (var atomWithNumArg in factsForThisAtom)
-                        {
-                            bool wasChanged = false;
-                            ParsedRule newRule = (ParsedRule)partialyGrounded.Clone();
-                            for (int i = 0; i < atomWithName.Arguments.Count; i++)
-                            {
-                                if (finished.Contains(atomWithName.Arguments[i])) continue;
-
-                                newRule.BodyAtoms.ForEach((x) =>
-                                {
-                                    var bodyArgIndex = x.Arguments.IndexOf(atomWithName.Arguments[i]);
-                                    if (bodyArgIndex != -1)
-                                    {
-                                        x.Arguments[bodyArgIndex] = atomWithNumArg.Arguments[i];
-                                        wasChanged = true;
-                                        partiallyGroundedWasChanged = true;
-                                    }
-                                });
-
-                            }
-                            if (wasChanged == true)
-                                tempNewFacts.Add(newRule);
-                        }
-                        if (partiallyGroundedWasChanged is false)
-                            tempNewFacts.Add(partialyGrounded);
-                    }
-                    newFacts.Clear();
-                    newFacts.AddRange(tempNewFacts);
-
-                    foreach (var item in atomWithName.Arguments)
-                    {
-                        finished.Add(item);
-                    }
-                }
-                constraint.IsGrounded = true;
-                groundedRules.AddRange(newFacts);
-            }
+            allRules.AddRange(PrepareIsDifferentConstraints(factsAndAllAtoms, rule));
+        }
+        foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.CreateNewConstant))
+        {
+            allRules.AddRange(PrepareCreateNewConstantConstraints(factsAndAllAtoms, rule));
         }
 
-        List<ParsedRule> finalResult = new();
-        foreach (var item in groundedRules)
-        {
-            if (!finalResult.Any(x => Compare(x, item)))
-                finalResult.Add(item);
-        }
-
-        return (RemoveDuplicates(facts), finalResult);
+        return (factsAndAllAtoms, allRules);
     }
 
-    public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareFactsFromRules(List<Fact> facts, List<ParsedRule> rules)
+    private static (List<Fact> Facts, List<ParsedRule> Rules) PrepareAtomsFromRules(List<Fact> facts, IEnumerable<ParsedRule> rules)
     {
         List<ParsedRule> groundedRules = new();
 
@@ -200,6 +129,81 @@ public class Grounder
         //        Console.WriteLine(item.BodyAtoms.IndexOf(bodyatom) + "Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
         //    }
         //}
+    }
+
+    private static List<ParsedRule> PrepareAtomsFromConstraints(List<Fact> facts, IEnumerable<ParsedRule> constraints)
+    {
+        List<ParsedRule> groundedRules = new();
+
+        while (constraints.Any(x => x.IsGrounded == false))
+        {
+            foreach (var constraint in constraints.Where(x => x.IsGrounded == false))
+            {
+                var knownAtomsInThisRule = constraint.BodyAtoms.Where(x => facts.Any(y => y.Name == x.Name));
+
+                if (!AreAllArgumentsKnownInRule(knownAtomsInThisRule.SelectMany(x => x.Arguments), constraint.BodyAtoms))
+                    throw new Exception("Ograniczenia posiadają nieznane zmienne (albo algorytm ma błąd :O )");
+
+                List<ParsedRule> newFacts = new() { constraint };
+                HashSet<string> finished = new();
+                foreach (var atomWithName in knownAtomsInThisRule.ToList())
+                {
+                    if (atomWithName.Arguments.Intersect(finished).Count() == atomWithName.Arguments.Count)
+                        continue;
+
+                    var factsForThisAtom = facts.Where(x => x.Name == atomWithName.Name);
+
+                    List<ParsedRule> tempNewFacts = new();
+                    foreach (var partialyGrounded in newFacts)
+                    {
+                        bool partiallyGroundedWasChanged = false;
+                        foreach (var atomWithNumArg in factsForThisAtom)
+                        {
+                            bool wasChanged = false;
+                            ParsedRule newRule = (ParsedRule)partialyGrounded.Clone();
+                            for (int i = 0; i < atomWithName.Arguments.Count; i++)
+                            {
+                                if (finished.Contains(atomWithName.Arguments[i])) continue;
+
+                                newRule.BodyAtoms.ForEach((x) =>
+                                {
+                                    var bodyArgIndex = x.Arguments.IndexOf(atomWithName.Arguments[i]);
+                                    if (bodyArgIndex != -1)
+                                    {
+                                        x.Arguments[bodyArgIndex] = atomWithNumArg.Arguments[i];
+                                        wasChanged = true;
+                                        partiallyGroundedWasChanged = true;
+                                    }
+                                });
+
+                            }
+                            if (wasChanged == true)
+                                tempNewFacts.Add(newRule);
+                        }
+                        if (partiallyGroundedWasChanged is false)
+                            tempNewFacts.Add(partialyGrounded);
+                    }
+                    newFacts.Clear();
+                    newFacts.AddRange(tempNewFacts);
+
+                    foreach (var item in atomWithName.Arguments)
+                    {
+                        finished.Add(item);
+                    }
+                }
+                constraint.IsGrounded = true;
+                groundedRules.AddRange(newFacts);
+            }
+        }
+
+        List<ParsedRule> finalResult = new();
+        foreach (var item in groundedRules)
+        {
+            if (!finalResult.Any(x => Compare(x, item)))
+                finalResult.Add(item);
+        }
+
+        return finalResult;
     }
 
     class Pair

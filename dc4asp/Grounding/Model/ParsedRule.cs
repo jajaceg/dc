@@ -25,12 +25,10 @@ public class Construct
 {
     public ConstructType ConstructType { get; set; }
     public string ConstructValue { get; set; }
-
     public Construct()
     {
-
+        
     }
-
     public Construct(ConstructType constructType, string constructValue)
     {
         ConstructType = constructType;

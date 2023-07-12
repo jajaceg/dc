@@ -5,11 +5,12 @@ using dc4asp.Grounding.Model;
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 
+//todo read from args
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
 var factList = Parser.ParseFacts(lines.Where(x => !x.Contains(":-")));
-
 var rulesFromFile = Parser.PrepareRulesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
+
 var (Facts, Rules) = Grounder.PrepareData(factList, rulesFromFile);
 
 //Change blok(L,I) to block(1,3) based on arguments
