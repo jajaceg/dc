@@ -8,13 +8,19 @@ using System.Text.RegularExpressions;
 //todo read from args
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
+Model model = new();
 var factList = Parser.ParseFacts(lines.Where(x => !x.Contains(":-")));
+for (var i = 1; i <= factList.Count; i++)
+{
+    model.rules.Add(ImmutableList.Create(i));
+}
+
 var rulesFromFile = Parser.PrepareRulesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
 
-var (Facts, Rules) = Grounder.PrepareData(factList, rulesFromFile);
+var rules = Grounder.PrepareData(factList, rulesFromFile);
 
 //Change blok(L,I) to block(1,3) based on arguments
-foreach (var item in Rules)
+foreach (var item in rules)
 {
     if (item.Kind == Kind.Rule)
     {
@@ -32,8 +38,9 @@ foreach (var item in Rules)
         atom.NameWithArgs = replacedString;
     }
 }
+
 //TODO remove this and save atoms instaed facts
-foreach (var item in Facts)
+foreach (var item in factList)
 {
     var pattern = @"\((.*?)\)";
     var replacedString = Regex.Replace(item.NameWithArgs, pattern, $"({string.Join(",", item.Arguments)})");
@@ -41,47 +48,18 @@ foreach (var item in Facts)
     item.NameWithArgs = replacedString;
 }
 
-//do usunięcia po poprawieniu indexów
-//foreach (var item in Facts)
-//{
-//    item.Index++;
-//}
-List<ImmutableList<int>> groundedRules = Grounder.Ground(Facts, Rules);
+List<ImmutableList<int>> rulesForSolver = Grounder.Ground(factList, rules);
 
-foreach (var item in Facts)
-{
-    Console.WriteLine("index: " + item.Index + ":    " + item.NameWithArgs);
-}
+ConsoleWriter.WriteAtoms(factList);
+ConsoleWriter.WriteRulesWithIndexes(rulesForSolver, factList);
 
-foreach (var item in groundedRules)
-{
-    Console.WriteLine();
-    Console.WriteLine();
-
-    foreach (var item2 in item)
-    {
-        if (item2 == 0)
-            Console.WriteLine(item2 + "   ograniczenie");
-        else
-            Console.WriteLine(item2 + "     " + Facts.First(x => x.Index == Math.Abs(item2)).NameWithArgs);
-
-    }
-}
-Model model = new();
-model.rules.AddRange(groundedRules);
-for (int i = 1; i < 16; i++)
-{
-    model.rules.Add(ImmutableList.Create<int>(i));
-
-}
-
-
+model.rules.AddRange(rulesForSolver);
 var answer = model.AnswerSets(model.rules.Count).FirstOrDefault();
 Console.WriteLine();
-
+Console.WriteLine("WYNIK:");
 foreach (var item in answer)
 {
-    var fakt = Facts.FirstOrDefault(x => x.Index == item && x.Name == "blok");
+    var fakt = factList.FirstOrDefault(x => x.Index == item && x.Name == "blok");
     if (fakt is not null)
     {
         Console.WriteLine(item + ": " + fakt.NameWithArgs);

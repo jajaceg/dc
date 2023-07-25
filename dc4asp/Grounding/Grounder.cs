@@ -9,30 +9,29 @@ namespace dc4asp.Grounding;
 
 public class Grounder
 {
-    public static (List<Fact> Facts, List<ParsedRule> Rules) PrepareData(List<Fact> facts, List<ParsedRule> parsedRules)
+    public static List<ParsedRule> PrepareData(List<Fact> facts, List<ParsedRule> parsedRules)
     {
         List<ParsedRule> allRules = new();
 
-        //TODO zmienić nazwy metod
-        var (factsAndAllAtoms, rules) = PrepareAtomsFromRules(facts, parsedRules.Where(x => x.Kind == Kind.Rule));
+        var rules = PrepareAtomsFromRules(facts, parsedRules.Where(x => x.Kind == Kind.Rule));
         allRules.AddRange(rules);
 
-        var constraints = PrepareAtomsFromConstraints(factsAndAllAtoms, parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false));
+        var constraints = PrepareAtomsFromConstraints(facts, parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false));
         allRules.AddRange(constraints);
 
         foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.IsDifferent))
         {
-            allRules.AddRange(PrepareIsDifferentConstraints(factsAndAllAtoms, rule));
+            allRules.AddRange(PrepareIsDifferentConstraints(facts, rule));
         }
         foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.CreateNewConstant))
         {
-            allRules.AddRange(PrepareCreateNewConstantConstraints(factsAndAllAtoms, rule));
+            allRules.AddRange(PrepareCreateNewConstantConstraints(facts, rule));
         }
 
-        return (factsAndAllAtoms, allRules);
+        return allRules;
     }
 
-    private static (List<Fact> Facts, List<ParsedRule> Rules) PrepareAtomsFromRules(List<Fact> facts, IEnumerable<ParsedRule> rules)
+    private static List<ParsedRule> PrepareAtomsFromRules(List<Fact> facts, IEnumerable<ParsedRule> rules)
     {
         List<ParsedRule> groundedRules = new();
 
@@ -105,7 +104,9 @@ public class Grounder
 
                 foreach (var item in newFacts)
                 {
-                    facts.Add(new Fact(item.Head.NameWithArgs, item.Head.Name, facts.Count, item.Head.Arguments));
+                    var potentialNewAtoms = new Fact(item.Head.NameWithArgs, item.Head.Name, facts.Count + 1, item.Head.Arguments);
+                    if (!facts.Any(x => AreAtomsTheSame(x, potentialNewAtoms)))
+                        facts.Add(potentialNewAtoms);
                 }
             }
         }
@@ -117,18 +118,7 @@ public class Grounder
                 finalResult.Add(item);
         }
 
-        return (RemoveDuplicates(facts), finalResult);
-
-        //foreach (var item in finalResult)
-        //{
-        //    Console.WriteLine();
-
-        //    Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
-        //    foreach (var bodyatom in item.BodyAtoms)
-        //    {
-        //        Console.WriteLine(item.BodyAtoms.IndexOf(bodyatom) + "Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
-        //    }
-        //}
+        return finalResult;
     }
 
     private static List<ParsedRule> PrepareAtomsFromConstraints(List<Fact> facts, IEnumerable<ParsedRule> constraints)
@@ -216,7 +206,6 @@ public class Grounder
 
     public static List<ParsedRule> PrepareIsDifferentConstraints(List<Fact> facts, ParsedRule rule)
     {
-        //na razie tylko ograniczenia mogą mieć jakieś konstrukcje I1!=I2 itp
         HashSet<string> finished = new();
         var contstructValueNames = rule.Construct.ConstructValue.Split("!=").Select(x => x.Trim()).ToList();
 
@@ -241,7 +230,6 @@ public class Grounder
                 });
             }
         }
-        //groundownie I1 oraz I2 na raz
         var newRoles = new List<ParsedRule>();
         foreach (var pair in pairs)
         {
@@ -326,10 +314,8 @@ public class Grounder
     }
     public static List<string> GetUniqueTokens(string equation)
     {
-        // Utwórz listę unikalnych tokenów
         List<string> uniqueTokens = new List<string>();
 
-        // Znajdź wszystkie litery pojedyncze i ciągi znaków bez spacji
         var tokens = Regex.Matches(equation, @"\b\w+\b")
             .Cast<Match>()
             .Select(m => m.Value);
@@ -342,7 +328,6 @@ public class Grounder
 
     public static List<ParsedRule> PrepareCreateNewConstantConstraints(List<Fact> facts, ParsedRule rule)
     {
-        //na razie tylko ograniczenia mogą mieć jakieś konstrukcje Z = X + Y itp
         HashSet<string> finished = new();
 
         List<string> uniqueTokens = GetUniqueTokens(rule.Construct.ConstructValue);
@@ -416,9 +401,6 @@ public class Grounder
                     {
                         if (finished.Contains(atomWithName.Arguments[i])) continue;
 
-                        //if (contstructValueNames.Contains(atomWithName.Arguments[i])) continue;
-
-
                         newRule.BodyAtoms.ForEach((x) =>
                         {
                             var bodyArgIndex = x.Arguments.IndexOf(atomWithName.Arguments[i]);
@@ -446,17 +428,6 @@ public class Grounder
             }
         }
 
-        //foreach (var item in newRoles)
-        //{
-        //    Console.WriteLine();
-
-        //    // Console.WriteLine("Head: " + item.Head.Name + "        : " + string.Join(", ", item.Head.Arguments));
-        //    foreach (var bodyatom in item.BodyAtoms)
-        //    {
-        //        Console.WriteLine(item.BodyAtoms.IndexOf(bodyatom) + "Name: " + bodyatom.Name + "        : " + string.Join(", ", bodyatom.Arguments));
-        //    }
-        //}
-
         return newRoles;
     }
     private static bool AreAllArgumentsKnownInRule(IEnumerable<string> knownArgumentNames, List<Atom> bodyAtoms)
@@ -464,36 +435,18 @@ public class Grounder
         return bodyAtoms.SelectMany(x => x.Arguments).Distinct().All(x => knownArgumentNames.Contains(x));
     }
 
-    private static List<Fact> RemoveDuplicates(List<Fact> rules)
-    {
-        //do usunięcia reset indexu
-        //foreach (var item in rules)
-        //{
-        //    item.Index = 0;
-        //}
-        List<Fact> uniqueList = new();
-        foreach (var item in rules)
-        {
-            if (!uniqueList.Any(x => Compare(x, item)))
-                uniqueList.Add(item);
-        }
-        //do usunięcia ustawienie indexu na nowo
-        //for (int i = 0; i < uniqueList.Count; i++)
-        //{
-        //    uniqueList[i].Index = i;
-        //}
-
-        return uniqueList;
-    }
-
     private static bool Compare(ParsedRule a, ParsedRule b)
     {
         return JToken.DeepEquals(JToken.FromObject(a), JToken.FromObject(b));
     }
 
-    private static bool Compare(Fact a, Fact b)
+    private static bool AreAtomsTheSame(Fact a, Fact b)
     {
-        return JToken.DeepEquals(JToken.FromObject(a), JToken.FromObject(b));
+        if (a.Name != b.Name) return false;
+        if (a.NameWithArgs != b.NameWithArgs) return false;
+        if (!a.Arguments.SequenceEqual(b.Arguments)) return false;
+
+        return true;
     }
 
     public static List<ImmutableList<int>> Ground(List<Fact> facts, List<ParsedRule> rules)
