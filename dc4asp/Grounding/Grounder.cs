@@ -19,13 +19,33 @@ public class Grounder
         var constraints = PrepareAtomsFromConstraints(facts, parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false));
         allRules.AddRange(constraints);
 
-        foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.IsDifferent))
+        foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.NotEqual))
         {
-            allRules.AddRange(PrepareIsDifferentConstraints(facts, rule));
+            allRules.AddRange(PrepareNotEqualConstraints(facts, rule));
         }
-        foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.CreateNewConstant))
+        foreach (var rule in parsedRules.Where(x => x.Construct.ConstructType == ConstructType.AssignConstant))
         {
-            allRules.AddRange(PrepareCreateNewConstantConstraints(facts, rule));
+            allRules.AddRange(PrepareAssignConstantConstraints(facts, rule));
+        }
+
+        //Change blok(L,I) to block(1,3) based on arguments
+        foreach (var item in allRules)
+        {
+            if (item.Kind == Kind.Rule)
+            {
+                var pattern = @"\((.*?)\)";
+                var replacedString = Regex.Replace(item.Head.NameWithArgs, pattern, $"({string.Join(",", item.Head.Arguments)})");
+
+                item.Head.NameWithArgs = replacedString;
+
+            }
+            foreach (var atom in item.BodyAtoms)
+            {
+                var pattern = @"\((.*?)\)";
+                var replacedString = Regex.Replace(atom.NameWithArgs, pattern, $"({string.Join(",", atom.Arguments)})");
+
+                atom.NameWithArgs = replacedString;
+            }
         }
 
         return allRules;
@@ -204,7 +224,7 @@ public class Grounder
         public string Value2ArgName { get; set; }
     }
 
-    public static List<ParsedRule> PrepareIsDifferentConstraints(List<Fact> facts, ParsedRule rule)
+    public static List<ParsedRule> PrepareNotEqualConstraints(List<Fact> facts, ParsedRule rule)
     {
         HashSet<string> finished = new();
         var contstructValueNames = rule.Construct.ConstructValue.Split("!=").Select(x => x.Trim()).ToList();
@@ -326,7 +346,7 @@ public class Grounder
         return uniqueTokens;
     }
 
-    public static List<ParsedRule> PrepareCreateNewConstantConstraints(List<Fact> facts, ParsedRule rule)
+    public static List<ParsedRule> PrepareAssignConstantConstraints(List<Fact> facts, ParsedRule rule)
     {
         HashSet<string> finished = new();
 

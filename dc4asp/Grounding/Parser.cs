@@ -3,14 +3,12 @@ using System.Text.RegularExpressions;
 
 namespace dc4asp.Grounding;
 
-//todo uporządkować interanl, public, private itd.
 internal static class Parser
 {
     public static List<Fact> ParseFacts(IEnumerable<string> lines)
     {
         List<Fact> factList = new();
         int index = 1;
-
 
         foreach (var line in lines)
         {
@@ -151,16 +149,6 @@ internal static class Parser
         };
     }
 
-    private static Atom CreateAtomFromHead(string head)
-    {
-        return new Atom
-        {
-            NameWithArgs = head,
-            Name = GetAtomName(head),
-            Arguments = new(GetArgumentNames(head))
-        };
-    }
-
     public static string GetAtomName(string atom)
     {
         return atom.Split('(').First().Trim();
@@ -191,25 +179,30 @@ internal static class Parser
     {
         parsedRule.BodyAtoms.RemoveAll(item =>
         {
-            if (item.NameWithArgs.Contains('=') && (item.NameWithArgs.Contains('+')
+            if (item.NameWithArgs.Contains('=') 
+            && (item.NameWithArgs.Contains('+')
             || item.NameWithArgs.Contains('-')
             || item.NameWithArgs.Contains('*')
             || item.NameWithArgs.Contains('/')
             || item.NameWithArgs.Contains('%')))
             {
-                parsedRule.Construct = new(ConstructType.CreateNewConstant, item.NameWithArgs);
+                parsedRule.Construct = new(
+                    ConstructType.AssignConstant, 
+                    item.NameWithArgs);
                 parsedRule.RoleHasSpecialConstructs = true;
                 return true;
             }
-            if (item.NameWithArgs.Contains("!="))
+            else if (item.NameWithArgs.Contains("!="))
             {
-                parsedRule.Construct = new(ConstructType.IsDifferent, item.NameWithArgs);
+                parsedRule.Construct = new(
+                    ConstructType.NotEqual, 
+                    item.NameWithArgs);
                 parsedRule.RoleHasSpecialConstructs = true;
                 return true;
             }
             return false;
         });
-
+    
         return parsedRule;
     }
 }

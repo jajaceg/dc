@@ -6,20 +6,19 @@ public enum Kind
     Constraint
 }
 
+public enum ConstructType
+{
+    None = 0,
+    NotEqual = 1, // I1 != I2
+    AssignConstant = 2 // Z = X + Y
+}
+
 public class Atom
 {
     public string NameWithArgs { get; set; }
     public string Name { get; set; }
     public List<string> Arguments { get; set; }
     public bool IsNegation { get; set; }
-}
-
-public enum ConstructType
-{
-    //TODO rename these props
-    None = 0,
-    IsDifferent = 1, // I1 != I2
-    CreateNewConstant = 2 // Z = X + Y
 }
 public class Construct
 {
@@ -38,6 +37,13 @@ public class Construct
 
 public class ParsedRule : ICloneable
 {
+    public bool IsGrounded { get; set; } = false;
+    public Kind Kind { get; set; }
+    public Atom Head { get; set; }
+    public List<Atom> BodyAtoms { get; set; } = new();
+    public bool RoleHasSpecialConstructs { get; set; }
+    public Construct Construct { get; set; } = new();
+
     public object Clone()
     {
         return new ParsedRule
@@ -78,11 +84,4 @@ public class ParsedRule : ICloneable
             IsNegation = atom.IsNegation
         };
     }
-
-    public bool IsGrounded { get; set; } = false;
-    public Kind Kind { get; set; }
-    public Atom Head { get; set; }
-    public List<Atom> BodyAtoms { get; set; } = new();
-    public bool RoleHasSpecialConstructs { get; set; }
-    public Construct Construct { get; set; } = new();
 }
