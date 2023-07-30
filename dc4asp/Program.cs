@@ -1,9 +1,7 @@
-﻿using com.sun.source.doctree;
-using dc4asp;
+﻿using dc4asp;
 using dc4asp.Grounding;
 using dc4asp.Grounding.Helpers;
 using System.Collections.Immutable;
-using System.Text.RegularExpressions;
 
 var lines = FileReader.ReadFile("C:\\Users\\jozek\\OneDrive\\mgr\\bloki.lp");
 
@@ -18,22 +16,16 @@ var rulesFromFile = Parser.PrepareRulesForGrounder(lines.Where(x => x.Contains("
 
 var rules = Grounder.PrepareData(factList, rulesFromFile);
 
-//TODO remove this and save atoms instaed facts
-foreach (var item in factList)
-{
-    var pattern = @"\((.*?)\)";
-    var replacedString = Regex.Replace(item.NameWithArgs, pattern, $"({string.Join(",", item.Arguments)})");
-
-    item.NameWithArgs = replacedString;
-}
+ConsoleWriter.WriteAtoms(factList);
 
 List<ImmutableList<int>> rulesForSolver = Grounder.Ground(factList, rules);
 
-ConsoleWriter.WriteAtoms(factList);
 ConsoleWriter.WriteRulesWithIndexes(rulesForSolver, factList);
 
 model.rules.AddRange(rulesForSolver);
 var answer = model.AnswerSets(model.rules.Count).FirstOrDefault();
+
+
 Console.WriteLine();
 Console.WriteLine("WYNIK:");
 foreach (var item in answer)

@@ -16,6 +16,7 @@ public class Grounder
         var rules = PrepareAtomsFromRules(facts, parsedRules.Where(x => x.Kind == Kind.Rule));
         allRules.AddRange(rules);
 
+
         var constraints = PrepareAtomsFromConstraints(facts, parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false));
         allRules.AddRange(constraints);
 
@@ -47,6 +48,30 @@ public class Grounder
                 atom.NameWithArgs = replacedString;
             }
         }
+
+        foreach (var item in facts)
+        {
+            var pattern = @"\((.*?)\)";
+            var replacedString = Regex.Replace(item.NameWithArgs, pattern, $"({string.Join(",", item.Arguments)})");
+
+            item.NameWithArgs = replacedString;
+        }
+
+        ConsoleWriter.WriteAtoms(facts);
+
+        foreach (var item in allRules)
+        {
+            if (item.Head is not null)
+                Console.WriteLine("Head: " + item.Head.NameWithArgs);
+            ;
+            foreach (var item2 in item.BodyAtoms)
+            {
+                Console.WriteLine(item2.NameWithArgs);
+            }
+            Console.WriteLine();
+            Console.WriteLine();
+        }
+
 
         return allRules;
     }
@@ -499,7 +524,7 @@ public class Grounder
     static int FindIndex(List<Fact> facts, Atom atom)
     {
         return facts.First(
-            x => x.Name == atom.Name && x.Arguments.SequenceEqual(atom.Arguments))
-            .Index;
+        x => x.Name == atom.Name && x.Arguments.SequenceEqual(atom.Arguments))
+        .Index;
     }
 }
