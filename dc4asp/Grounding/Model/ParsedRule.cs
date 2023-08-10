@@ -52,7 +52,7 @@ public class ParsedRule : ICloneable
             Head = CloneAtom(Head),
             BodyAtoms = CloneAtoms(BodyAtoms),
             RoleHasSpecialConstructs = RoleHasSpecialConstructs,
-            Construct = Construct is null ? null : new Construct(Construct.ConstructType, Construct.ConstructValue) //sprawdzić czy string będzie skopiowany
+            Construct = Construct is null ? null : new Construct(Construct.ConstructType, Construct.ConstructValue)
         };
     }
 

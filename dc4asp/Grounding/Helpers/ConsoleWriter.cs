@@ -9,7 +9,7 @@ public static class ConsoleWriter
     {
         foreach (var item in facts)
         {
-            Console.WriteLine("index: " + item.Index + ":    " + item.NameWithArgs);
+            Console.WriteLine("   indeks " + item.Index + ":    " + item.NameWithArgs);
         }
     }
 
@@ -29,5 +29,31 @@ public static class ConsoleWriter
 
             }
         }
+    }
+
+    public static void WriteSolution(ImmutableHashSet<int>? answer, List<Fact> factList)
+    {
+        Console.WriteLine();
+        Console.WriteLine("   WYNIK:");
+        foreach (var item in answer)
+        {
+            var fakt = factList.FirstOrDefault(x => x.Index == item);
+            if (fakt is not null)
+            {
+                Console.WriteLine("   Indeks " + item + ": " + fakt.NameWithArgs);
+            }
+        }
+        Console.WriteLine();
+    }
+
+    public static void WriteSolutionIndexes(ImmutableHashSet<int>? answer)
+    {
+        Console.WriteLine();
+        Console.WriteLine("   WYNIK (indeksy):");
+        foreach (var item in answer)
+        {
+            Console.WriteLine("   " + item);
+        }
+        Console.WriteLine();
     }
 }

@@ -1,0 +1,34 @@
+% wierzcho³ki
+wierzcholek(a).
+wierzcholek(b).
+wierzcholek(c).
+wierzcholek(d).
+
+% krawiêdzie
+krawedz(a,b).
+krawedz(a,c).
+krawedz(b,c).
+krawedz(b,d).
+krawedz(c,a).
+krawedz(c,d).
+krawedz(d,a).
+
+% generuj wybrane i odrzucone œcie¿ki
+wybrana(X,Y) :- not odrzucona(X,Y), krawedz(X,Y).
+odrzucona(X,Y) :- not wybrana(X,Y), krawedz(X,Y).
+
+% nie mo¿na 2 razy wejœæ/wyjœæ z wierzcho³ka
+:- wybrana(X1,Y), wybrana(X2,Y), X1 != X2.
+:- wybrana(X,Y1), wybrana(X,Y2), Y1 != Y2.
+
+% do ka¿dego wierzcho³ka trzeba wejœæ i wyjœæ
+wierzcholek_zrealizowany(Y) :- wybrana(X,Y), wybrana(Y,Z).
+:- wierzcholek(X), not wierzcholek_zrealizowany(X).
+
+% spójnoœæ
+osiagalny(Y) :- wybrana(X,Y).
+osiagalny(Y) :- osiagalny(X), wybrana(X,Y).
+:- wierzcholek(X), not osiagalny(X).
+
+
+

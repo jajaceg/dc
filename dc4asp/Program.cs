@@ -11,29 +11,17 @@ for (var i = 1; i <= factList.Count; i++)
 {
     model.rules.Add(ImmutableList.Create(i));
 }
-
 var rulesFromFile = Parser.PrepareRulesForGrounder(lines.Where(x => x.Contains(":-")).Select(x => x.Trim()));
 
 var rules = Grounder.PrepareData(factList, rulesFromFile);
 
 ConsoleWriter.WriteAtoms(factList);
 
-List<ImmutableList<int>> rulesForSolver = Grounder.Ground(factList, rules);
-
-ConsoleWriter.WriteRulesWithIndexes(rulesForSolver, factList);
+List<ImmutableList<int>> rulesForSolver = Grounder.MapFactsAndRulesToInts(factList, rules);
 
 model.rules.AddRange(rulesForSolver);
+
 var answer = model.AnswerSets(model.rules.Count).FirstOrDefault();
 
-
-Console.WriteLine();
-Console.WriteLine("WYNIK:");
-foreach (var item in answer)
-{
-    var fakt = factList.FirstOrDefault(x => x.Index == item && x.Name == "blok");
-    if (fakt is not null)
-    {
-        Console.WriteLine(item + ": " + fakt.NameWithArgs);
-    }
-}
-Console.WriteLine();
+ConsoleWriter.WriteSolution(answer, factList);
+ConsoleWriter.WriteSolutionIndexes(answer);

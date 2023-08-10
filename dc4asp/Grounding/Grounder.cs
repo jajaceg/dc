@@ -16,7 +16,6 @@ public class Grounder
         var rules = PrepareAtomsFromRules(facts, parsedRules.Where(x => x.Kind == Kind.Rule));
         allRules.AddRange(rules);
 
-
         var constraints = PrepareAtomsFromConstraints(facts, parsedRules.Where(x => x.Kind == Kind.Constraint && x.RoleHasSpecialConstructs == false));
         allRules.AddRange(constraints);
 
@@ -48,6 +47,8 @@ public class Grounder
                 atom.NameWithArgs = replacedString;
             }
         }
+        int ine = 1;
+        int in2e = 1;
 
         foreach (var item in facts)
         {
@@ -56,22 +57,6 @@ public class Grounder
 
             item.NameWithArgs = replacedString;
         }
-
-        ConsoleWriter.WriteAtoms(facts);
-
-        foreach (var item in allRules)
-        {
-            if (item.Head is not null)
-                Console.WriteLine("Head: " + item.Head.NameWithArgs);
-            ;
-            foreach (var item2 in item.BodyAtoms)
-            {
-                Console.WriteLine(item2.NameWithArgs);
-            }
-            Console.WriteLine();
-            Console.WriteLine();
-        }
-
 
         return allRules;
     }
@@ -177,7 +162,7 @@ public class Grounder
                 var knownAtomsInThisRule = constraint.BodyAtoms.Where(x => facts.Any(y => y.Name == x.Name));
 
                 if (!AreAllArgumentsKnownInRule(knownAtomsInThisRule.SelectMany(x => x.Arguments), constraint.BodyAtoms))
-                    throw new Exception("Ograniczenia posiadają nieznane zmienne (albo algorytm ma błąd :O )");
+                    throw new Exception("Something went wrong.");
 
                 List<ParsedRule> newFacts = new() { constraint };
                 HashSet<string> finished = new();
@@ -365,7 +350,6 @@ public class Grounder
             .Cast<Match>()
             .Select(m => m.Value);
 
-        // Dodaj unikalne tokeny do listy
         uniqueTokens.AddRange(tokens.Distinct());
 
         return uniqueTokens;
@@ -494,28 +478,40 @@ public class Grounder
         return true;
     }
 
-    public static List<ImmutableList<int>> Ground(List<Fact> facts, List<ParsedRule> rules)
+    public static List<ImmutableList<int>> MapFactsAndRulesToInts(
+        List<Fact> facts, List<ParsedRule> rules)
     {
         List<ImmutableList<int>> result = new();
         foreach (var rule in rules)
         {
+            bool roleIsCorrect = true;
             int index = 0;
             if (rule.Kind == Kind.Rule)
             {
                 index = FindIndex(facts, rule.Head);
+                if (index == -2)
+                {
+                    continue;
+                }
             }
             List<int> indexesFromBody = new() { index };
 
             foreach (var item in rule.BodyAtoms)
             {
                 var indexOfBodyArg = FindIndex(facts, item);
+                if (indexOfBodyArg == -2)
+                {
+                    roleIsCorrect = false;
+                    continue;
+                }
                 if (item.IsNegation)
                 {
                     indexOfBodyArg *= -1;
                 }
                 indexesFromBody.Add(indexOfBodyArg);
             }
-            result.Add(indexesFromBody.ToImmutableList());
+            if (roleIsCorrect)
+                result.Add(indexesFromBody.ToImmutableList());
         }
 
         return result;
@@ -523,8 +519,15 @@ public class Grounder
 
     static int FindIndex(List<Fact> facts, Atom atom)
     {
-        return facts.First(
-        x => x.Name == atom.Name && x.Arguments.SequenceEqual(atom.Arguments))
-        .Index;
+        try
+        {
+            return facts.First(
+            x => x.Name == atom.Name && x.Arguments.SequenceEqual(atom.Arguments))
+            .Index;
+        }
+        catch (Exception ex)
+        {
+            return -2;
+        }
     }
 }
